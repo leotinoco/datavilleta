@@ -23,6 +23,7 @@ Cuando la fuente no trae fecha propia, se muestra la fecha de publicación en el
 | Turismo y hotelería | MinCIT – Registro Nacional de Turismo (`thwd-ivmp`); Supertransporte – pasajeros despachados desde terminales (`eh75-8ah6`) |
 | Economía y empresas | Confecámaras/RUES – Cámara de Comercio de Facatativá (`c82u-588k`, `nb3d-v3n7`); Superfinanciera – captaciones y colocaciones (`u2wk-tfe3`), puntos de atención (`vkbt-desu`); Supersociedades – 10.000 empresas (`6cat-2gcs`); Supersolidaria (`kg2d-yfyg`) |
 | Servicios públicos | Superservicios – RUPS (`4qkq-csdn`), residuos (`d7pt-p5fi`), PQR energía (`myu9-6wb7`); INS – IRCA calidad del agua (`nxt2-39c3`); MinTIC – internet fijo (`n48w-gutb`, `hwrp-3su3`) |
+| ESP Villeta | Índice de agua no contabilizada (IANC), cobertura, recaudo, continuidad, Indicador Único Sectorial, estados financieros 2018–2025, indicadores financieros, resultado por servicio, ejecución presupuestal y hallazgos. Fuentes: PDF oficiales de la empresa (espvilleta.gov.co) y evaluación integral de la Superservicios (agosto 2026), transcritos en `data/esp-villeta.json`; contratos en vivo desde SECOP |
 | Seguridad y convivencia | MinDefensa/Policía – 15 conjuntos de delitos (hurtos, homicidio, lesiones, VIF, delitos sexuales, extorsión, informáticos, ambientales, tránsito, secuestro, abigeato) |
 | Educación y cultura | MEN – estadísticas por municipio (`nudc-7mev`); ICFES – Saber 11 (`kgxf-xxbe`); MinCulturas – beneficiarios (`bq7b-e3sb`) |
 | Salud | MinSalud – REPS (`c36g-9fc2`), afiliados por régimen (`hn4i-593p`) |
@@ -101,6 +102,10 @@ scripts/snapshot.mjs  Copia mensual de registros sin histórico
 ```
 
 La cita de la fuente, la fecha de actualización, la tabla, el CSV y el enlace a la consulta API se generan solos.
+
+## Datos de la ESP Villeta (sin API)
+
+El IANC y los estados financieros de la Empresa de Servicios Públicos no están en datos.gov.co, y el SUI de la Superservicios no admite consultas automáticas. Por eso se transcribieron de los documentos oficiales a `data/esp-villeta.json`, con el enlace a cada PDF. La transcripción se verificó aritméticamente (cada estado de resultados y balance cuadra) y las cifras 2024–2025 coinciden con las de la Superservicios. Para actualizar, agregue el nuevo año con su documento en `documentos`.
 
 ## Notas de calidad de datos
 

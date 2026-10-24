@@ -79,8 +79,8 @@ export function drawChart(canvas, spec) {
   const legendCount = datasets.length;
   const catAxis = horizontal ? 'y' : 'x';
   const valAxis = horizontal ? 'x' : 'y';
-  // Barras horizontales de una serie: valor directo en el extremo de cada barra.
-  const tipLabels = spec.kind === 'hbar' && spec.series.length === 1 && spec.labels.length <= 25;
+  // Valor directo en el extremo de la barra: barras horizontales de una serie, o columnas cuando son pocas.
+  const tipLabels = spec.series.length === 1 && ((spec.kind === 'hbar' && n <= 25) || (spec.kind === 'bar' && n <= 6));
 
   const config = {
     data: { labels: spec.labels, datasets },
@@ -92,11 +92,16 @@ export function drawChart(canvas, spec) {
         ctx.save();
         ctx.font = `11px ${FONT.family}`;
         ctx.fillStyle = P.text2;
-        ctx.textBaseline = 'middle';
         meta.data.forEach((bar, i) => {
           const v = chart.data.datasets[0].data[i];
           if (v == null) return;
-          ctx.fillText(fmt(v), bar.x + 6, bar.y);
+          if (horizontal) {
+            ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.fillText(fmt(v), bar.x + 6, bar.y);
+          } else {
+            ctx.textAlign = 'center'; ctx.textBaseline = v < 0 ? 'top' : 'bottom';
+            ctx.fillText(fmt(v), bar.x, v < 0 ? bar.y + 6 : bar.y - 6);
+          }
         });
         ctx.restore();
       },
@@ -109,7 +114,7 @@ export function drawChart(canvas, spec) {
       interaction: isLine || stacked || spec.series.length > 1
         ? { mode: 'index', intersect: false, axis: catAxis }
         : { mode: 'nearest', intersect: false, axis: catAxis },
-      layout: { padding: { top: 4, right: tipLabels ? 72 : 12, left: 0, bottom: 0 } },
+      layout: { padding: { top: tipLabels && !horizontal ? 22 : 4, right: tipLabels && horizontal ? 72 : 12, left: 0, bottom: tipLabels && !horizontal ? 16 : 0 } },
       plugins: {
         legend: {
           display: legendCount >= 2,
@@ -173,7 +178,7 @@ export function drawChart(canvas, spec) {
           ticks: {
             color: P.muted, font: FONT, padding: 8, maxRotation: 0,
             maxTicksLimit: horizontal && canvas.parentElement?.clientWidth < 520 ? 3 : 6,
-            callback: v => (spec.format === 'pct' ? `${compact(v)} %` : spec.format === 'cop' ? `$${compact(v)}` : compact(v)),
+            callback: v => (spec.format === 'pct' ? `${compact(v)} %` : spec.format === 'cop' ? `${v < 0 ? '−' : ''}$${compact(Math.abs(v))}` : compact(v)),
           },
         },
       },

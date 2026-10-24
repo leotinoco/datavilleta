@@ -21,7 +21,7 @@ export function compact(v) {
   return num(v, a < 10 ? 1 : 0);
 }
 
-export const cop = v => (v == null ? '—' : `$ ${compact(v)}`);
+export const cop = v => (v == null ? '—' : `${v < 0 ? '−' : ''}$ ${compact(Math.abs(v))}`);
 export const copFull = v => (v == null ? '—' : `$ ${num(v)}`);
 
 export function signedPct(v, d = 1) {

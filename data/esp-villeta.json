@@ -1,0 +1,115 @@
+{
+  "_nota": "Cifras transcritas de documentos oficiales en PDF (no existe API abierta con estos datos). Cada registro indica su fuente en 'documentos'. Valores en pesos colombianos corrientes. Transcripción verificada: cada estado de resultados y balance cuadra (ingresos - costos - gastos = utilidad; activo = pasivo + patrimonio).",
+  "actualizado": "2026-10-24",
+  "empresa": {
+    "nombre": "Empresa de Servicios Públicos E.S.P. del Municipio de Villeta (E.S.P. Villeta)",
+    "nit": "832.002.268-4",
+    "idSui": "2154",
+    "naturaleza": "Empresa Industrial y Comercial del Estado (EICE), 100 % pública",
+    "creacion": "Acuerdo Municipal No. 39 de 1995",
+    "inicioOperacion": "1998-01-14",
+    "servicios": ["Acueducto", "Alcantarillado", "Aseo", "Laboratorio de aguas"],
+    "personal": { "total": 51, "administrativo": 21, "operativo": 30, "corte": "2026-05", "fuente": "sspd2026" },
+    "web": "https://espvilleta.gov.co/"
+  },
+  "documentos": {
+    "sspd2026": { "titulo": "Informe de evaluación integral (vigilancia concreta) E.S.P. Villeta – periodo 2024 y 2025", "entidad": "Superintendencia de Servicios Públicos Domiciliarios", "fecha": "2026-08-24", "url": "https://www.superservicios.gov.co/sites/default/files/inline-files/Informe-Evaluacion-Integral-Empresa-de-Servicios-Publicos-de-Villeta-2026.pdf" },
+    "ef2025": { "titulo": "Estado de situación financiera y estado de resultado integral 2025 (comparativo 2024)", "entidad": "E.S.P. Villeta", "fecha": "2025-12-31", "url": "https://espvilleta.gov.co/documentacion/estado-de-resultados-2025-de-la-empresa-de-servicios-publicos-e-s-p-del-municipio-de-villeta/" },
+    "ef2023": { "titulo": "Estado de situación financiera y estado de resultado integral 2023 (comparativo 2022)", "entidad": "E.S.P. Villeta", "fecha": "2023-12-31", "url": "https://espvilleta.gov.co/documentacion/estado-de-resultados-2023-de-la-empresa-de-servicios-publicos-e-s-p-del-municipio-de-villeta/" },
+    "ef2021": { "titulo": "Estado de situación financiera y estado de resultado integral 2021 (comparativo 2020)", "entidad": "E.S.P. Villeta", "fecha": "2021-12-31", "url": "https://espvilleta.gov.co/documentacion/estado-de-resultados-2021-de-la-empresa-de-servicios-publicos-e-s-p-del-municipio-de-villeta/" },
+    "ef2020": { "titulo": "Estado de situación financiera individual 2020 (comparativo 2019)", "entidad": "E.S.P. Villeta", "fecha": "2020-12-31", "url": "https://espvilleta.gov.co/documentacion/estado-situacion-financiera-2020-de-la-empresa-de-servicios-publicos-e-s-p-del-municipio-de-villeta/" },
+    "ef2019": { "titulo": "Estado de resultados integral 2019 (comparativo 2018)", "entidad": "E.S.P. Villeta", "fecha": "2019-12-31", "url": "https://espvilleta.gov.co/documentacion/estado-resultados-2019-de-la-empresa-de-servicios-publicos-e-s-p-del-municipio-de-villeta/" },
+    "ind2023": { "titulo": "Indicadores de gestión 2023", "entidad": "E.S.P. Villeta", "fecha": "2023-12-31", "url": "https://espvilleta.gov.co/documentacion/informe-de-gestion-vigencia-2023" },
+    "ind2024": { "titulo": "Indicadores de gestión 2024", "entidad": "E.S.P. Villeta", "fecha": "2024-12-31", "url": "https://espvilleta.gov.co/documentacion/indicadores-de-gestion-2024-de-la-empresa-de-servicios-publicos-e-s-p-del-municipio-de-villeta" },
+    "gestion2025": { "titulo": "Informe de gestión 2025 (ejecución presupuestal a octubre de 2025)", "entidad": "E.S.P. Villeta", "fecha": "2025-10-31", "url": "https://espvilleta.gov.co/documentacion/informe-de-gestion-vigencia-2025/" }
+  },
+  "estadoResultados": [
+    { "anio": 2018, "fuente": "ef2019", "ingresos": { "total": 4403232594 }, "costos": { "total": 3128313285 }, "utilidadBruta": 1274919309, "gastosAdmin": 1156684625, "ingresosNoOperacionales": 190066660, "otrosGastos": 92554155, "impuesto": 82855000, "utilidadNeta": 132892189 },
+    { "anio": 2019, "fuente": "ef2019", "ingresos": { "total": 4672771032 }, "costos": { "total": 3391802875 }, "utilidadBruta": 1280968157, "gastosAdmin": 1305392319, "ingresosNoOperacionales": 137302681, "otrosGastos": 53579969, "impuesto": 14257142, "utilidadNeta": 45041408 },
+    { "anio": 2020, "fuente": "ef2021", "ingresos": { "acueducto": 1754238718, "alcantarillado": 907758909, "aseo": 1971792792, "total": 4633790419 }, "costos": { "acueducto": 1412215209, "alcantarillado": 336054281, "aseo": 1471784931, "total": 3220054421 }, "utilidadBruta": 1413735998, "gastosAdmin": 1444069204, "ingresosNoOperacionales": 144647414, "otrosGastos": 53392399, "impuesto": 14251031, "utilidadNeta": 46670778 },
+    { "anio": 2021, "fuente": "ef2021", "ingresos": { "acueducto": 2105230512, "alcantarillado": 1141267981, "aseo": 2142907590, "total": 5389406083 }, "costos": { "acueducto": 1680993175, "alcantarillado": 507025838, "aseo": 1693358214, "total": 3881377227 }, "utilidadBruta": 1508028856, "gastosAdmin": 1668264952, "ingresosNoOperacionales": 212975173, "otrosGastos": 12185742, "impuesto": 19906001, "utilidadNeta": 20647334 },
+    { "anio": 2022, "fuente": "ef2023", "ingresos": { "acueducto": 2358892409, "alcantarillado": 1299089103, "aseo": 2587172979, "total": 6245154491 }, "costos": { "acueducto": 1951407436, "alcantarillado": 423935079, "aseo": 1971049216, "total": 4346391731 }, "utilidadBruta": 1898762760, "gastosAdmin": 2135628761, "ingresosNoOperacionales": 195850104, "otrosGastos": 8243994, "impuesto": 6367425, "utilidadNeta": -55627315 },
+    { "anio": 2023, "fuente": "ef2023", "ingresos": { "acueducto": 2744934569, "alcantarillado": 1662963500, "aseo": 2885856186, "total": 7293754255 }, "costos": { "acueducto": 2393562380, "alcantarillado": 498922270, "aseo": 2336235642, "total": 5228720292 }, "utilidadBruta": 2065033964, "gastosAdmin": 2222584216, "ingresosNoOperacionales": 240025247, "otrosGastos": 15957398, "impuesto": 43309000, "utilidadNeta": 23208596 },
+    { "anio": 2024, "fuente": "ef2025", "ingresos": { "acueducto": 3165298209, "alcantarillado": 1853971552, "aseo": 3251496264, "total": 8270766025 }, "costos": { "acueducto": 2710831578, "alcantarillado": 534501505, "aseo": 2665115459, "total": 5910448542 }, "utilidadBruta": 2360317483, "gastosAdmin": 2490598650, "ingresosNoOperacionales": 206794781, "otrosGastos": 34362547, "impuesto": 22408572, "utilidadNeta": 19742495 },
+    { "anio": 2025, "fuente": "ef2025", "ingresos": { "acueducto": 3467798128, "alcantarillado": 1961194423, "aseo": 3302870256, "total": 8731862807 }, "costos": { "acueducto": 2996412536, "alcantarillado": 508200445, "aseo": 3153928641, "total": 6658541622 }, "utilidadBruta": 2073321185, "gastosAdmin": 2529511779, "ingresosNoOperacionales": 245865555, "otrosGastos": 38887901, "impuesto": 4330428, "utilidadNeta": -253543368 }
+  ],
+  "situacionFinanciera": [
+    { "anio": 2019, "fuente": "ef2020", "efectivo": 337683115, "cuentasPorCobrar": 427992489, "inventarios": 249157405, "anticipos": 102360326, "anticipoImpuestos": 0, "activoCorriente": 1117193334, "ppe": 19224861942, "intangibles": 88163997, "activoTotal": 20430219273, "pasivoTotal": 415928940, "pasivoCorriente": 415928940, "cuentasPorPagar": 31620299, "beneficiosEmpleados": 246123215, "patrimonio": 20014290333, "capitalFiscal": 20520336755, "perdidasAcumuladas": -1253219041 },
+    { "anio": 2020, "fuente": "ef2021", "efectivo": 326668532, "cuentasPorCobrar": 566438662, "inventarios": 330930398, "anticipos": 209201052, "anticipoImpuestos": 0, "activoCorriente": 1433238644, "ppe": 19015710829, "intangibles": 88163997, "activoTotal": 20537113470, "pasivoTotal": 476152359, "pasivoCorriente": 476152359, "cuentasPorPagar": 40092141, "beneficiosEmpleados": 277969106, "patrimonio": 20060961111, "capitalFiscal": 20520336755, "perdidasAcumuladas": -1208177633 },
+    { "anio": 2021, "fuente": "ef2021", "efectivo": 1387283241, "cuentasPorCobrar": 516904237, "inventarios": 407124933, "anticipos": 259413915, "anticipoImpuestos": 0, "activoCorriente": 2570726326, "ppe": 18825759520, "intangibles": 73619748, "activoTotal": 21470105594, "pasivoTotal": 1388497149, "pasivoCorriente": 1388497149, "cuentasPorPagar": 56925870, "beneficiosEmpleados": 270179611, "patrimonio": 20081608445, "capitalFiscal": 20520336755, "perdidasAcumuladas": -1161506855 },
+    { "anio": 2022, "fuente": "ef2023", "efectivo": 611384671, "cuentasPorCobrar": 610784453, "inventarios": 323447226, "anticipos": 335093080, "anticipoImpuestos": 0, "activoCorriente": 1880709429, "ppe": 19718785838, "intangibles": 59075499, "activoTotal": 21658570767, "pasivoTotal": 1237368909, "pasivoCorriente": 1237368909, "cuentasPorPagar": 57023920, "beneficiosEmpleados": 315847162, "patrimonio": 20421201858, "capitalFiscal": 20915557483, "perdidasAcumuladas": -1140859521 },
+    { "anio": 2023, "fuente": "ef2023", "efectivo": 654087818, "cuentasPorCobrar": 784311732, "inventarios": 229010466, "anticipos": 455814274, "anticipoImpuestos": 0, "activoCorriente": 2123224289, "ppe": 21692732163, "intangibles": 44531250, "activoTotal": 23860487702, "pasivoTotal": 1430497161, "pasivoCorriente": 1430497161, "cuentasPorPagar": 152886128, "beneficiosEmpleados": 406387093, "patrimonio": 22429990541, "capitalFiscal": 22901137571, "perdidasAcumuladas": -1196486836 },
+    { "anio": 2024, "fuente": "ef2025", "efectivo": 581728619, "cuentasPorCobrar": 763030663, "inventarios": 258660994, "anticipos": 0, "anticipoImpuestos": 635616361, "activoCorriente": 2239036637, "ppe": 22150985603, "intangibles": 35625000, "activoTotal": 24425647240, "pasivoTotal": 1669261446, "pasivoCorriente": 1669261446, "cuentasPorPagar": 157530176, "beneficiosEmpleados": 519513700, "patrimonio": 22756385794, "capitalFiscal": 23207790328, "perdidasAcumuladas": -1173278240 },
+    { "anio": 2025, "fuente": "ef2025", "efectivo": 952165504, "cuentasPorCobrar": 534636798, "inventarios": 205520279, "anticipos": 6646244, "anticipoImpuestos": 881133150, "activoCorriente": 2580101975, "ppe": 22761316287, "intangibles": 29687500, "activoTotal": 25371105762, "pasivoTotal": 2131232766, "pasivoCorriente": 2131232766, "cuentasPorPagar": 545242678, "beneficiosEmpleados": 510594801, "patrimonio": 23239872996, "capitalFiscal": 23944820898, "perdidasAcumuladas": -1153535745 }
+  ],
+  "resultadoPorServicio": [
+    { "anio": 2024, "fuente": "sspd2026", "acueducto": { "ingresos": 3165298000, "costos": 2710832000, "gastosAdmin": 847154000, "utilidadNeta": -295481000 }, "alcantarillado": { "ingresos": 1853972000, "costos": 534502000, "gastosAdmin": 801580000, "utilidadNeta": 545126000 }, "aseo": { "ingresos": 3251496000, "costos": 2665115000, "gastosAdmin": 841865000, "utilidadNeta": -229904000 } },
+    { "anio": 2025, "fuente": "sspd2026", "acueducto": { "ingresos": 3467798000, "costos": 2996413000, "gastosAdmin": 624843000, "utilidadNeta": 46839000 }, "alcantarillado": { "ingresos": 1961194000, "costos": 508200000, "gastosAdmin": 1296129000, "utilidadNeta": 152166000 }, "aseo": { "ingresos": 3302871000, "costos": 3153929000, "gastosAdmin": 608542000, "utilidadNeta": -452553000 } }
+  ],
+  "indicadoresSspd": [
+    { "anio": 2024, "fuente": "sspd2026", "razonCorriente": 1.34, "capitalTrabajo": 569775000, "pruebaAcida": 0.73, "endeudamiento": 6.83, "apalancamiento": 7.33, "margenBruto": 28.53, "margenOperacional": -1.57, "margenNeto": 0.24, "roa": 0.08, "roe": 0.09, "diasCartera": 33.67, "cubrimientoCostosGastos": 0.98 },
+    { "anio": 2025, "fuente": "sspd2026", "razonCorriente": 1.21, "capitalTrabajo": 448869000, "pruebaAcida": 0.86, "endeudamiento": 8.40, "apalancamiento": 9.17, "margenBruto": 23.74, "margenOperacional": -5.22, "margenNeto": -2.90, "roa": -1.00, "roe": -1.09, "diasCartera": 22.35, "cubrimientoCostosGastos": 0.95 }
+  ],
+  "indicadoresGestion": {
+    "_nota": "Valor del último periodo reportado en el tablero de indicadores de gestión de la empresa (indicador de frecuencia mensual).",
+    "registros": [
+      { "anio": 2023, "fuente": "ind2023", "ianc": 52.94, "coberturaMedicion": 88.08, "coberturaAcueducto": 83.68, "coberturaAlcantarillado": 77.41, "eficienciaRecaudo": 76.83, "rotacionCarteraOficialDias": 61.10, "rotacionCarteraParticularDias": 31.59 },
+      { "anio": 2024, "fuente": "ind2024", "ianc": 48.58, "coberturaMedicion": 88.76, "coberturaAcueducto": 86.46, "coberturaAlcantarillado": 80.83, "eficienciaRecaudo": 81.51, "caudalPct": 77.75, "riesgoCalidadAgua": 0.74 }
+    ],
+    "metas": { "ianc": 25, "coberturaMedicion": 90, "coberturaAcueducto": 85, "coberturaAlcantarillado": 95, "eficienciaRecaudo": 90 },
+    "formulaIanc": "((Volumen de agua producido - Volumen de agua facturado) / Volumen producido) × 100"
+  },
+  "ius": {
+    "fuente": "sspd2026",
+    "dimensiones": { "CS": "Calidad del servicio", "EP": "Eficiencia en la planeación y ejecución de inversiones", "EO": "Eficiencia en la operación", "GE": "Eficiencia en la gestión empresarial", "SF": "Sostenibilidad financiera", "GYT": "Gobierno y transparencia", "SA": "Sostenibilidad ambiental", "GT": "Gestión tarifaria" },
+    "maximoPorDimension": 12.5,
+    "registros": [
+      { "anio": 2023, "CS": 9.92, "EP": 12.50, "EO": 10.60, "GE": 12.50, "SF": 8.58, "GYT": 7.69, "SA": 11.25, "GT": 2.50, "total": 75.54, "riesgo": "Riesgo medio" },
+      { "anio": 2024, "CS": 10.36, "EP": 12.49, "EO": 9.50, "GE": 12.50, "SF": 11.59, "GYT": 8.97, "SA": 12.50, "GT": 12.49, "total": 90.40, "riesgo": "Riesgo bajo" }
+    ]
+  },
+  "operacion": [
+    { "anio": 2024, "fuente": "sspd2026", "continuidadHorasDia": 15.85, "irabapp": 35, "ircaMesesCumplen": 11, "ircaMesesReportados": 12, "ipqrAcueducto": 99.5, "ipqrAlcantarillado": 99.5 }
+  ],
+  "reporteSui": {
+    "fuente": "sspd2026",
+    "corte": "2026-06-17",
+    "registros": [
+      { "anio": 2022, "radicados": 497, "pendientes": 0, "pct": 100 },
+      { "anio": 2023, "radicados": 495, "pendientes": 0, "pct": 100 },
+      { "anio": 2024, "radicados": 482, "pendientes": 14, "pct": 97 },
+      { "anio": 2025, "radicados": 449, "pendientes": 44, "pct": 91 },
+      { "anio": 2026, "radicados": 154, "pendientes": 54, "pct": 74, "parcial": true }
+    ]
+  },
+  "presupuesto": [
+    { "vigencia": 2025, "total": 9857882006, "acto": "Acuerdo No. 15 de 2024", "fuente": "sspd2026" },
+    { "vigencia": 2026, "total": 10346326680, "acto": "Acuerdo No. 012 de 2025", "fuente": "sspd2026" }
+  ],
+  "ejecucion2025": {
+    "fuente": "gestion2025",
+    "corte": "2025-10-31",
+    "ingresos": [
+      { "rubro": "Servicio de acueducto", "apropiacion": 3441398357, "recaudo": 2584600424 },
+      { "rubro": "Servicio de alcantarillado", "apropiacion": 2097087798, "recaudo": 1463825124 },
+      { "rubro": "Servicio de aseo", "apropiacion": 2981498091, "recaudo": 2729808726 },
+      { "rubro": "Total ingresos", "apropiacion": 10815796156, "recaudo": 8894073620 }
+    ],
+    "gastos": [
+      { "rubro": "Gastos de funcionamiento", "apropiacion": 3479666851, "compromisos": 2918479124 },
+      { "rubro": "Gastos de operación", "apropiacion": 5790615155, "compromisos": 5164496075 },
+      { "rubro": "Inversión", "apropiacion": 1545514150, "compromisos": 1431173934 },
+      { "rubro": "Total gastos", "apropiacion": 10815796156, "compromisos": 9514149133 }
+    ]
+  },
+  "hallazgos": {
+    "fuente": "sspd2026",
+    "lista": [
+      "Financiero – No cumple: los gastos de administración del servicio de alcantarillado pasaron de 43,24 % a 66,09 % de sus ingresos (2024→2025), una diferencia de $494.549.000 sin justificación en la Nota 30 de los estados financieros.",
+      "Financiero – No cumple: las notas a los estados financieros 2025 no detallan suficientemente gastos, costos, método de deterioro de cartera y otros pasivos (Res. CGN 414 de 2014).",
+      "Conclusión SSPD: estructura financiera basada en recursos propios (patrimonio 91,6 % del total), con pérdida neta de $253,5 millones en 2025; alcantarillado es el único servicio con utilidad en 2024 y 2025, acueducto se recupera en 2025 y aseo consume casi la totalidad de sus ingresos en costos.",
+      "Presupuesto: más del 93 % de los recursos se destina a funcionamiento y operación; la inversión queda entre 4,9 % y 6,2 %.",
+      "IUS 2024: el modelo hidráulico obtuvo 0 por falta de reporte al SUI y el Valor Económico Agregado (EVA) obtuvo 0; continuidad del acueducto de 15,85 horas/día."
+    ]
+  }
+}

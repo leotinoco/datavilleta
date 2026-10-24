@@ -228,8 +228,10 @@ export function renderBlock(block, grid, filters) {
     const keys = [...new Set([...(block.sources || []), ...used.map(u => u.key)])];
     const list = el('ul', 'sources');
     list.append(...await Promise.all(keys.map(sourceLine)));
-    if (block.sourceText) list.append(el('li', 'source', block.sourceText));
-    const label = el('div', 'sources-label', keys.length + (block.sourceText ? 1 : 0) > 1 ? 'Fuentes' : 'Fuente');
+    // Citas adicionales (documentos sin API): fijas en el bloque o devueltas por la consulta.
+    const extra = [block.sourceText, ...(res?.sourceText ? [].concat(res.sourceText) : [])].filter(Boolean);
+    for (const t of extra) list.append(el('li', 'source', t));
+    const label = el('div', 'sources-label', keys.length + extra.length > 1 ? 'Fuentes' : 'Fuente');
     footer.append(label, list);
 
     const actions = el('div', 'card-actions');

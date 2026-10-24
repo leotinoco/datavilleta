@@ -5,6 +5,7 @@ import inicio from './sections/inicio.js';
 import turismo from './sections/turismo.js';
 import economia from './sections/economia.js';
 import servicios from './sections/servicios.js';
+import esp from './sections/esp.js';
 import seguridad from './sections/seguridad.js';
 import educacion from './sections/educacion.js';
 import salud from './sections/salud.js';
@@ -14,7 +15,7 @@ import victimas from './sections/victimas.js';
 import territorio from './sections/territorio.js';
 import fuentes from './sections/fuentes.js';
 
-const SECTIONS = Object.fromEntries([inicio, turismo, economia, servicios, seguridad, educacion, salud, agro, contratacion, victimas, territorio, fuentes].map(s => [s.id, s]));
+const SECTIONS = Object.fromEntries([inicio, turismo, economia, servicios, esp, seguridad, educacion, salud, agro, contratacion, victimas, territorio, fuentes].map(s => [s.id, s]));
 const main = document.getElementById('main');
 const nav = document.getElementById('nav-list');
 const navToggle = document.getElementById('nav-toggle');

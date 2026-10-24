@@ -84,6 +84,30 @@ export default {
       },
     },
     {
+      type: 'table',
+      title: 'Documentos oficiales transcritos (sin API abierta)',
+      subtitle: 'Cifras de la ESP Villeta tomadas de PDF oficiales y guardadas en data/esp-villeta.json',
+      wide: true,
+      sourceText: 'E.S.P. Villeta (sitio web oficial, sección de transparencia) y Superintendencia de Servicios Públicos Domiciliarios.',
+      async load() {
+        const res = await fetch('data/esp-villeta.json', { cache: 'no-cache' });
+        if (!res.ok) return { empty: true };
+        const d = await res.json();
+        return {
+          asOf: false,
+          table: {
+            columns: [
+              { key: 'entidad', label: 'Entidad' },
+              { key: 'titulo', label: 'Documento', html: (v, r) => link(r.url, v) },
+              { key: 'fecha', label: 'Fecha / corte', format: v => fecha(v) },
+            ],
+            rows: Object.values(d.documentos),
+          },
+          note: `Transcripción revisada el ${fecha(d.actualizado)}: cada estado de resultados y balance cuadra aritméticamente. Para actualizar, agregue el nuevo año en data/esp-villeta.json con su documento fuente.`,
+        };
+      },
+    },
+    {
       type: 'html',
       wide: true,
       html: `<div class="prose"><h2>Fuentes complementarias sin API abierta</h2><p>Estas fuentes oficiales tienen información de Villeta pero no la exponen mediante una API pública abierta; se consultan manualmente.</p><ul>${FUENTES_COMPLEMENTARIAS.map(f => `<li><strong>${escapeHtml(f.entidad)}</strong> — ${link(f.url, f.nombre)}</li>`).join('')}</ul></div>`,
