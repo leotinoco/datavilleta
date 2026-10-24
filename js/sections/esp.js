@@ -1,7 +1,7 @@
 // Empresa de Servicios Públicos de Villeta: IANC, operación, estados financieros y evaluación de la
 // Superservicios. Las cifras vienen de documentos oficiales en PDF (sin API abierta) transcritas en
 // data/esp-villeta.json; la contratación se consulta en vivo en SECOP.
-import { num, cop, pct, change, escapeHtml, fecha, toNum } from '../format.js';
+import { num, cop, pct, change, escapeHtml, fecha, toNum, mes, MESES_CORTOS } from '../format.js';
 import { ofYear, ofMonth, ofDate } from '../freshness.js';
 import { THIS_YEAR } from './helpers.js';
 import { secopBase } from './contratacion.js';
@@ -39,8 +39,7 @@ export default {
         const d = await datos();
         const er = d.estadoResultados;
         const [e24, e25] = [er.find(r => r.anio === 2024), er.find(r => r.anio === 2025)];
-        const ig = d.indicadoresGestion.registros;
-        const [i23, i24] = [ig.find(r => r.anio === 2023), ig.find(r => r.anio === 2024)];
+        const [ianPrev, ianLast] = d.ianc.anual.slice(-2);
         const [u23, u24] = d.ius.registros;
         const op = ultimo(d.operacion);
         return {
@@ -48,13 +47,13 @@ export default {
           kpis: [
             { label: 'Ingresos por servicios 2025', value: cop(e25.ingresos.total), delta: change(e25.ingresos.total, e24.ingresos.total), goodWhen: 'up', deltaLabel: 'vs 2024', asOf: ofYear(2025) },
             { label: 'Resultado neto 2025', value: cop(e25.utilidadNeta), hint: `2024: ${cop(e24.utilidadNeta)} (utilidad)`, asOf: ofYear(2025) },
-            { label: 'Agua no contabilizada (IANC)', value: pct(i24.ianc, 2), delta: change(i24.ianc, i23.ianc), goodWhen: 'down', deltaLabel: 'vs 2023', hint: `Meta de la empresa: ${d.indicadoresGestion.metas.ianc} %`, asOf: ofYear(2024) },
+            { label: `Agua no contabilizada (IANC) ${ianLast.anio}`, value: pct(ianLast.valor, 2), delta: change(ianLast.valor, ianPrev.valor), goodWhen: 'down', deltaLabel: `vs ${ianPrev.anio}`, hint: `Meta de la empresa: ${d.ianc.metaEmpresa} %`, asOf: ofYear(ianLast.anio) },
             { label: 'Indicador Único Sectorial (IUS)', value: `${num(u24.total, 1)} / 100`, delta: change(u24.total, u23.total), goodWhen: 'up', deltaLabel: 'vs 2023', hint: `${u24.riesgo} (2023: ${u23.riesgo.toLowerCase()})`, asOf: ofYear(u24.anio) },
             { label: 'Continuidad del acueducto', value: `${num(op.continuidadHorasDia, 2)} h/día`, hint: 'Horas promedio de servicio al día (meta: 24)', asOf: ofYear(op.anio) },
             { label: 'Personal', value: num(d.empresa.personal.total), hint: `${d.empresa.personal.administrativo} administrativos · ${d.empresa.personal.operativo} operativos`, asOf: ofMonth(...d.empresa.personal.corte.split('-')) },
           ],
           html: `<p class="note">NIT ${escapeHtml(d.empresa.nit)} · ID SUI ${escapeHtml(d.empresa.idSui)} · ${escapeHtml(d.empresa.naturaleza)} · creada por ${escapeHtml(d.empresa.creacion)} · opera desde ${fecha(d.empresa.inicioOperacion)} · <a href="${escapeHtml(d.empresa.web)}" target="_blank" rel="noopener">sitio web de la empresa</a></p>`,
-          sourceText: cita(d, 'ef2025', 'ind2024', 'sspd2026'),
+          sourceText: cita(d, 'ef2025', 'cs2025', 'sspd2026'),
         };
       },
     },
@@ -62,22 +61,82 @@ export default {
     { type: 'heading', title: 'Agua no contabilizada y gestión comercial', text: 'El <strong>IANC</strong> mide qué porcentaje del agua tratada que sale de la planta no llega a facturarse: pérdidas técnicas (fugas en redes) y comerciales (conexiones sin medidor, fraudes o submedición). Fórmula: ((volumen producido − volumen facturado) ÷ volumen producido) × 100. Menor es mejor.' },
     {
       type: 'chart',
-      title: 'Índice de agua no contabilizada (IANC)',
-      subtitle: 'Porcentaje del agua producida que no se factura',
+      title: 'Índice de agua no contabilizada (IANC) 2012–2025',
+      subtitle: 'Porcentaje del agua producida que no se factura, según los documentos oficiales de cada año',
+      wide: true,
       async load() {
         const d = await datos();
-        const ig = d.indicadoresGestion;
+        const { anual, sinDato, metaEmpresa } = d.ianc;
+        const desde = anual[0].anio;
+        const hasta = ultimo(anual).anio;
+        const anios = [];
+        for (let y = desde; y <= hasta; y++) anios.push(y);
+        const reg = y => anual.find(r => r.anio === y);
+        const falta = y => sinDato.find(r => r.anio === y);
+        const fuentes = [...new Set(anual.flatMap(r => [r.fuente, r.fuente2]).concat(sinDato.map(r => r.fuente)).filter(Boolean))];
         return {
           labelTitle: 'Año',
-          asOf: ofYear(ultimo(ig.registros).anio),
+          asOf: ofYear(hasta),
           chart: {
-            kind: 'bar', format: 'pct', max: 70,
-            labels: ig.registros.map(r => String(r.anio)),
-            series: [{ name: 'IANC', data: ig.registros.map(r => r.ianc) }],
-            threshold: { value: ig.metas.ianc, label: `Meta de la empresa (${ig.metas.ianc} %)` },
+            kind: 'bar', format: 'pct', max: 60,
+            labels: anios.map(String),
+            series: [{ name: 'IANC', data: anios.map(y => reg(y)?.valor ?? null) }],
+            threshold: { value: metaEmpresa, label: `Meta de la empresa (${metaEmpresa} %)` },
+            footer: i => { const r = reg(anios[i]); return r ? r.tipo : `Sin dato: ${falta(anios[i])?.nota || 'no publicado'}`; },
           },
-          note: `En 2024, de cada 100 m³ producidos, unos ${num(ultimo(ig.registros).ianc, 0)} no se facturaron. ${ig._nota} La empresa no publica la serie completa por año; el reporte oficial está en el SUI de la Superservicios, que no permite consultas automáticas.`,
-          sourceText: cita(d, 'ind2023', 'ind2024'),
+          table: {
+            columns: [
+              { key: 'anio', label: 'Año' },
+              { key: 'valor', label: 'IANC', align: 'right', format: v => (v == null ? 'Sin dato' : pct(v, 2)) },
+              { key: 'tipo', label: 'Tipo de dato' },
+              { key: 'nota', label: 'Observación' },
+              { key: 'fuente', label: 'Documento', html: v => (v ? `<a href="${escapeHtml(d.documentos[v].url)}" target="_blank" rel="noopener">${escapeHtml(d.documentos[v].titulo)}</a>` : '—') },
+            ],
+            rows: anios.map(y => ({ anio: y, valor: reg(y)?.valor ?? null, tipo: reg(y)?.tipo || '—', nota: reg(y)?.nota || falta(y)?.nota || '', fuente: reg(y)?.fuente || falta(y)?.fuente || null })),
+          },
+          note: `Con dato en ${anual.length} de ${anios.length} años. ${d.ianc._nota} Las barras vacías son años sin un valor válido publicado (ver "Ver tabla").`,
+          sourceText: cita(d, ...fuentes),
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'IANC mensual: comparativo 2023–2025',
+      subtitle: 'Porcentaje de agua no facturada cada mes, un año por línea',
+      async load() {
+        const d = await datos();
+        const m = d.ianc.mensual;
+        const todos = m.flatMap(a => a.meses.filter(x => x.ianc != null).map(x => ({ ...x, anio: a.anio })));
+        const peor = todos.reduce((a, b) => (b.ianc > a.ianc ? b : a));
+        const mejor = todos.reduce((a, b) => (b.ianc < a.ianc ? b : a));
+        return {
+          labelTitle: 'Mes',
+          asOf: ofMonth(ultimo(m).anio, 12),
+          chart: { kind: 'line', format: 'pct', beginAtZero: false, labels: MESES_CORTOS, series: m.map(a => ({ name: String(a.anio), data: a.meses.map(x => x.ianc) })) },
+          note: `Mes con mayor pérdida: ${mes(peor.mes)} ${peor.anio} (${pct(peor.ianc, 2)}); con menor: ${mes(mejor.mes)} ${mejor.anio} (${pct(mejor.ianc, 2)}). Marzo de 2024 se publicó sin volumen producido.`,
+          sourceText: cita(d, ...m.map(a => a.fuente)),
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'Agua producida vs. agua facturada',
+      subtitle: 'Metros cúbicos por mes; la diferencia es el agua no contabilizada',
+      async load() {
+        const d = await datos();
+        const meses = d.ianc.mensual.flatMap(a => a.meses.map(x => ({ ...x, anio: a.anio })));
+        const totales = d.ianc.mensual.map(a => {
+          const ok = a.meses.filter(x => x.producido != null);
+          const P = ok.reduce((s, x) => s + x.producido, 0);
+          const F = ok.reduce((s, x) => s + x.facturado, 0);
+          return `${a.anio}: ${num(P)} m³ producidos y ${num(F)} facturados (${num(P - F)} m³ no contabilizados)`;
+        });
+        return {
+          labelTitle: 'Mes',
+          asOf: ofMonth(ultimo(d.ianc.mensual).anio, 12),
+          chart: { kind: 'line', labels: meses.map(x => `${mes(x.mes)} ${x.anio}`), series: [{ name: 'Producida (m³)', data: meses.map(x => x.producido) }, { name: 'Facturada (m³)', data: meses.map(x => x.facturado) }] },
+          note: `${totales.join('. ')}.`,
+          sourceText: cita(d, ...d.ianc.mensual.map(a => a.fuente)),
         };
       },
     },
