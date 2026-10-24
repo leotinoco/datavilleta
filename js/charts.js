@@ -1,0 +1,187 @@
+// Envoltorio de Chart.js con las especificaciones visuales del sitio (barras finas con extremo
+// redondeado, líneas de 2 px, grilla tenue, leyenda solo con 2+ series, tooltip con variación).
+import { getFormat, signedPct, change, compact } from './format.js';
+
+const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+export function palette() {
+  return {
+    series: Array.from({ length: 8 }, (_, i) => cssVar(`--series-${i + 1}`)),
+    text: cssVar('--text-primary'),
+    text2: cssVar('--text-secondary'),
+    muted: cssVar('--text-muted'),
+    grid: cssVar('--grid'),
+    axis: cssVar('--axis'),
+    surface: cssVar('--surface-1'),
+    border: cssVar('--border-strong'),
+  };
+}
+
+function withAlpha(color, a) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(color);
+  if (!m) return color;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+}
+
+const FONT = { family: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', size: 12 };
+
+/**
+ * spec = {
+ *   kind: 'bar' | 'hbar' | 'line' | 'stacked' | 'hstacked',
+ *   labels: string[],
+ *   series: [{ name, data: number[], color?: 0-7, muted?: bool }],
+ *   format: 'num' | 'dec' | 'pct' | 'cop' | fn,
+ *   partialLast: bool   // último período incompleto: barra atenuada
+ *   yoy: bool           // tooltip muestra variación frente al período anterior
+ *   threshold: { value, label }
+ *   beginAtZero, min, max
+ * }
+ */
+export function drawChart(canvas, spec) {
+  const P = palette();
+  const fmt = getFormat(spec.format);
+  const horizontal = spec.kind === 'hbar' || spec.kind === 'hstacked';
+  const stacked = spec.kind === 'stacked' || spec.kind === 'hstacked';
+  const isLine = spec.kind === 'line';
+  const n = spec.labels.length;
+  const lastSeries = spec.series.length - 1;
+
+  const datasets = spec.series.map((s, i) => {
+    const color = s.muted ? P.muted : P.series[(s.color ?? i) % 8];
+    if (isLine) {
+      return {
+        type: 'line', label: s.name, data: s.data,
+        borderColor: color, backgroundColor: color,
+        borderWidth: 2, borderJoinStyle: 'round', borderCapStyle: 'round', tension: 0, spanGaps: true,
+        pointRadius: n > 36 ? 0 : 4, pointHoverRadius: 6, pointHitRadius: 14,
+        pointBorderColor: P.surface, pointBorderWidth: 2,
+      };
+    }
+    const fill = spec.partialLast ? spec.labels.map((_, j) => (j === n - 1 ? withAlpha(color, 0.38) : color)) : color;
+    const gap = stacked ? (horizontal ? { right: 2 } : { top: 2 }) : 0;
+    return {
+      type: 'bar', label: s.name, data: s.data,
+      backgroundColor: fill, hoverBackgroundColor: fill,
+      borderColor: P.surface, borderWidth: gap,
+      borderRadius: stacked && i !== lastSeries ? 0 : 4, borderSkipped: 'start',
+      maxBarThickness: 24, categoryPercentage: 0.78, barPercentage: spec.series.length > 1 && !stacked ? 0.92 : 0.86,
+    };
+  });
+
+  if (spec.threshold) {
+    datasets.push({
+      type: 'line', label: spec.threshold.label, data: spec.labels.map(() => spec.threshold.value),
+      borderColor: P.axis, borderWidth: 1.5, pointRadius: 0, pointHitRadius: 0, tension: 0,
+    });
+  }
+
+  const legendCount = datasets.length;
+  const catAxis = horizontal ? 'y' : 'x';
+  const valAxis = horizontal ? 'x' : 'y';
+  // Barras horizontales de una serie: valor directo en el extremo de cada barra.
+  const tipLabels = spec.kind === 'hbar' && spec.series.length === 1 && spec.labels.length <= 25;
+
+  const config = {
+    data: { labels: spec.labels, datasets },
+    plugins: tipLabels ? [{
+      id: 'tipLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        const meta = chart.getDatasetMeta(0);
+        ctx.save();
+        ctx.font = `11px ${FONT.family}`;
+        ctx.fillStyle = P.text2;
+        ctx.textBaseline = 'middle';
+        meta.data.forEach((bar, i) => {
+          const v = chart.data.datasets[0].data[i];
+          if (v == null) return;
+          ctx.fillText(fmt(v), bar.x + 6, bar.y);
+        });
+        ctx.restore();
+      },
+    }] : [],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: horizontal ? 'y' : 'x',
+      animation: { duration: 250 },
+      interaction: isLine || stacked || spec.series.length > 1
+        ? { mode: 'index', intersect: false, axis: catAxis }
+        : { mode: 'nearest', intersect: false, axis: catAxis },
+      layout: { padding: { top: 4, right: tipLabels ? 72 : 12, left: 0, bottom: 0 } },
+      plugins: {
+        legend: {
+          display: legendCount >= 2,
+          position: 'top',
+          align: 'start',
+          labels: {
+            color: P.text2, font: FONT, usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 14,
+            // Muestra de color tomada de la serie (no del anillo del punto, que usa el color de superficie).
+            generateLabels(chart) {
+              return chart.data.datasets.map((ds, i) => ({
+                text: ds.label, datasetIndex: i, hidden: !chart.isDatasetVisible(i),
+                fillStyle: ds.type === 'line' ? ds.borderColor : (Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : ds.backgroundColor),
+                strokeStyle: 'transparent', lineWidth: 0, fontColor: P.text2,
+                pointStyle: ds.type === 'line' ? 'circle' : 'rectRounded',
+              }));
+            },
+          },
+        },
+        tooltip: {
+          backgroundColor: P.surface, titleColor: P.text, bodyColor: P.text2, footerColor: P.muted,
+          borderColor: P.border, borderWidth: 1, padding: 10, cornerRadius: 6,
+          usePointStyle: true, boxPadding: 4, titleFont: { ...FONT, weight: '600' }, bodyFont: FONT, footerFont: FONT,
+          callbacks: {
+            label(ctx) {
+              const v = ctx.parsed[valAxis];
+              let out = `${ctx.dataset.label}: ${fmt(v)}`;
+              if (spec.yoy && ctx.dataIndex > 0 && ctx.datasetIndex < spec.series.length) {
+                const prev = ctx.dataset.data[ctx.dataIndex - 1];
+                const c = change(v, prev);
+                if (c != null) out += `  (${signedPct(c)} vs ${spec.labels[ctx.dataIndex - 1]})`;
+              }
+              return out;
+            },
+            footer(items) {
+              if (spec.partialLast && items[0]?.dataIndex === n - 1) return 'Período en curso: datos parciales';
+              return spec.footer ? spec.footer(items[0]?.dataIndex) : '';
+            },
+          },
+        },
+      },
+      scales: {
+        [catAxis]: {
+          stacked,
+          grid: { display: false },
+          border: { color: P.axis },
+          ticks: {
+            color: P.muted, font: FONT, maxRotation: 0, autoSkip: !horizontal, autoSkipPadding: 10,
+            callback(value) {
+              const label = String(this.getLabelForValue(value));
+              const max = this.chart.width < 520 ? 18 : 34;
+              return horizontal && label.length > max ? `${label.slice(0, max - 1)}…` : label;
+            },
+          },
+        },
+        [valAxis]: {
+          stacked,
+          beginAtZero: spec.beginAtZero ?? true,
+          min: spec.min, max: spec.max,
+          grid: { color: P.grid, lineWidth: 1, drawTicks: false },
+          border: { display: false },
+          ticks: {
+            color: P.muted, font: FONT, padding: 8, maxRotation: 0,
+            maxTicksLimit: horizontal && canvas.parentElement?.clientWidth < 520 ? 3 : 6,
+            callback: v => (spec.format === 'pct' ? `${compact(v)} %` : spec.format === 'cop' ? `$${compact(v)}` : compact(v)),
+          },
+        },
+      },
+    },
+  };
+  // eslint-disable-next-line no-undef
+  return new Chart(canvas, config);
+}
+
+// Altura sugerida para barras horizontales según el número de categorías.
+export const hbarHeight = n => Math.max(200, n * 30 + 70);

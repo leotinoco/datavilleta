@@ -1,0 +1,11 @@
+{
+  "name": "datavilleta",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Observatorio de datos públicos de Villeta, Cundinamarca, con consultas en vivo a las APIs oficiales de Colombia.",
+  "type": "module",
+  "scripts": {
+    "start": "python -m http.server 8080",
+    "snapshot": "node scripts/snapshot.mjs"
+  }
+}

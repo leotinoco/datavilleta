@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Datavilleta · Villeta en datos</title>
+  <meta name="description" content="Observatorio de datos públicos de Villeta, Cundinamarca: turismo, economía, servicios públicos, seguridad, educación, salud, agro, contratación y más, consultados en vivo en las APIs oficiales de Colombia.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1.5' fill='white'/%3E%3Crect x='14' y='11' width='4' height='14' rx='1.5' fill='white'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1.5' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Saltar al contenido</a>
+  <header class="topbar">
+    <button id="nav-toggle" class="nav-toggle" type="button" aria-controls="sidebar" aria-expanded="false">Menú</button>
+    <a class="brand" href="#/inicio">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span><strong>Datavilleta</strong><small>Villeta, Cundinamarca en datos públicos</small></span>
+    </a>
+    <div class="topbar-actions">
+      <button id="refresh" class="btn-ghost" type="button" title="Borra la caché local y vuelve a consultar las APIs">Actualizar<span class="wide-only"> datos</span></button>
+      <button id="theme" class="btn-ghost" type="button" aria-pressed="false">Tema oscuro</button>
+    </div>
+  </header>
+  <div class="layout">
+    <nav id="sidebar" class="sidebar" aria-label="Secciones">
+      <ul id="nav-list"></ul>
+      <p class="sidebar-note">Datos consultados en vivo en <a href="https://www.datos.gov.co" target="_blank" rel="noopener">datos.gov.co</a> y otras fuentes oficiales.</p>
+    </nav>
+    <main id="main" tabindex="-1"></main>
+  </div>
+  <footer class="site-foot">
+    <p>Proyecto de análisis ciudadano con datos abiertos. Las cifras pertenecen a las entidades citadas en cada gráfico; este sitio no es un canal oficial de ninguna de ellas.</p>
+  </footer>
+</body>
+</html>

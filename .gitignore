@@ -1,0 +1,11 @@
+# Configuración local de herramientas
+.claude/
+.vscode/
+.idea/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Node (no se usan dependencias, por si acaso)
+node_modules/

@@ -1,0 +1,97 @@
+{
+  "municipio": "Villeta",
+  "dane": "25875",
+  "snapshots": [
+    {
+      "mes": "2026-10",
+      "fecha": "2026-10-24",
+      "rnt": {
+        "corte": "AGOSTO 2026",
+        "prestadores": 579,
+        "habitaciones": 3058,
+        "camas": 8256,
+        "empleados": 882,
+        "porSubcategoria": {
+          "APARTAHOTEL": {
+            "prestadores": 1,
+            "camas": 13
+          },
+          "APARTAMENTO TURÍSTICO": {
+            "prestadores": 144,
+            "camas": 1205
+          },
+          "AGENCIA DE VIAJES OPERADORAS": {
+            "prestadores": 9,
+            "camas": 0
+          },
+          "GUIA DE TURISMO": {
+            "prestadores": 11,
+            "camas": 0
+          },
+          "FINCA TURISTICA (ALOJAMIENTO RURAL)": {
+            "prestadores": 187,
+            "camas": 2420
+          },
+          "GLAMPING": {
+            "prestadores": 8,
+            "camas": 86
+          },
+          "ALBERGUE": {
+            "prestadores": 1,
+            "camas": 40
+          },
+          "CASA TURÍSTICA": {
+            "prestadores": 58,
+            "camas": 630
+          },
+          "REFUGIO": {
+            "prestadores": 1,
+            "camas": 9
+          },
+          "HOSTAL": {
+            "prestadores": 13,
+            "camas": 330
+          },
+          "OPERADOR DE CHIVAS": {
+            "prestadores": 1,
+            "camas": 0
+          },
+          "CAMPAMENTO": {
+            "prestadores": 3,
+            "camas": 32
+          },
+          "OTRO TIPO DE VIVIENDA TURÍSTICA": {
+            "prestadores": 54,
+            "camas": 680
+          },
+          "OTROS TIPOS DE HOSPEDAJE TURÍSTICOS NO PERMANENTES": {
+            "prestadores": 3,
+            "camas": 18
+          },
+          "AGENCIA DE VIAJES Y DE TURISMO": {
+            "prestadores": 9,
+            "camas": 0
+          },
+          "CENTRO VACACIONAL": {
+            "prestadores": 9,
+            "camas": 714
+          },
+          "HOTEL": {
+            "prestadores": 67,
+            "camas": 2079
+          }
+        }
+      },
+      "rups": {
+        "ACUEDUCTO": 6,
+        "ALCANTARILLADO": 3,
+        "ASEO": 5
+      },
+      "reps": {
+        "Instituciones Prestadoras de Servicios de Salud - IPS": 12,
+        "Objeto Social Diferente a la Prestación de Servicios de Salud": 1,
+        "Profesional Independiente": 16
+      }
+    }
+  ]
+}
