@@ -1,6 +1,7 @@
 import { SOURCES, FUENTES_COMPLEMENTARIAS } from '../sources.js';
 import { metadata, discover, datasetUrl, resourceUrl } from '../soda.js';
 import { fecha, escapeHtml } from '../format.js';
+import { CRITERIO } from '../freshness.js';
 
 const link = (url, text) => `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(text)}</a>`;
 
@@ -22,6 +23,7 @@ export default {
         const rows = entries.map(([key, s], i) => ({ key, ...s, publicado: metas[i]?.attribution || '', actualizado: metas[i]?.rowsUpdatedAt || null }))
           .sort((a, b) => a.tema.localeCompare(b.tema) || a.nombre.localeCompare(b.nombre));
         return {
+          asOf: false,
           table: {
             columns: [
               { key: 'tema', label: 'Tema' },
@@ -44,6 +46,7 @@ export default {
         <ul>
           <li><strong>Consulta en vivo.</strong> Cada tarjeta ejecuta consultas SoQL contra la API SODA de datos.gov.co filtrando por Villeta (código DANE 25875 o el nombre del municipio, según el campo disponible). El enlace "Consulta API" de cada tarjeta muestra la consulta exacta para reproducir la cifra.</li>
           <li><strong>Caché.</strong> Las respuestas se guardan 6 horas en el navegador para no saturar el portal. El botón "Actualizar datos" del encabezado borra esa caché.</li>
+          <li><strong>Vigencia del dato.</strong> Cada gráfico indica arriba a la derecha el periodo de su dato más reciente (año, trimestre, mes o día, según la fuente) y si está <em>✓ Actualizado</em>, <em>◔ Con rezago</em> o <em>! Desactualizado</em>. ${escapeHtml(CRITERIO)} Cuando la fuente no trae fecha propia se muestra la fecha de publicación en el portal.</li>
           <li><strong>Comparativos año a año.</strong> Las barras incluyen en su detalle la variación frente al año anterior. El año en curso aparece atenuado y marcado con * porque está incompleto.</li>
           <li><strong>Año corrido.</strong> Para delitos, pasajeros y contratación se compara el mismo periodo (1 de enero a la fecha de corte) del año actual y del anterior. En delitos, la fecha de corte es el último hecho publicado por el Ministerio de Defensa.</li>
           <li><strong>Cambios de metodología.</strong> Cuando una fuente cambió de método (p. ej. EVA agropecuaria en 2019, sistemas de denuncia hacia 2016) se advierte en la tarjeta y las series se muestran por separado.</li>
@@ -66,6 +69,7 @@ export default {
         const items = (await discover(M.nombre, 200)).filter(d => !used.has(d.id));
         if (!items.length) return { empty: true };
         return {
+          asOf: false,
           table: {
             columns: [
               { key: 'name', label: 'Conjunto', html: (v, r) => link(datasetUrl(r.id), v) },

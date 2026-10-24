@@ -1,5 +1,10 @@
 import { num, toNum, cop, change, fecha, titleCase, escapeHtml } from '../format.js';
-import { THIS_YEAR, textKey } from './helpers.js';
+import { THIS_YEAR, textKey, corteFecha } from './helpers.js';
+import { ofYear } from '../freshness.js';
+
+// Último contrato firmado (sin fechas futuras mal digitadas) = fecha de corte de SECOP para Villeta.
+const hoy = () => new Date().toISOString().slice(0, 10);
+export const corteSecop = (q, M) => corteFecha(q, 'secop', 'fecha_de_firma_del_contrato', `${secopBase(M)} and fecha_de_firma_del_contrato <= '${hoy()}T23:59:59'`);
 
 const ENTIDADES = [
   { value: 'todas', label: 'Todas las entidades con sede en Villeta', re: null, where: '' },
@@ -48,6 +53,7 @@ export default {
         const get = (y, k) => toNum(rows.find(r => Number(r.y) === y)?.[k]) || 0;
         const lbl = `vs mismo periodo ${THIS_YEAR - 1}`;
         return {
+          asOf: await corteSecop(q, M),
           kpis: [
             { label: `Contratos firmados en ${THIS_YEAR} (a la fecha)`, value: num(get(THIS_YEAR, 'n')), delta: change(get(THIS_YEAR, 'n'), get(THIS_YEAR - 1, 'n')), deltaLabel: lbl, source: 'secop' },
             { label: `Valor contratado en ${THIS_YEAR} (a la fecha)`, value: cop(get(THIS_YEAR, 'v')), delta: change(get(THIS_YEAR, 'v'), get(THIS_YEAR - 1, 'v')), deltaLabel: lbl, source: 'secop' },
@@ -65,7 +71,7 @@ export default {
       async load({ q, M, filters }) {
         const rows = (await q('secop', { $select: 'date_extract_y(fecha_de_firma_del_contrato) as y, count(*) as n, sum(valor_contrato) as v', $where: where(M, filters), $group: 'y', $order: 'y' })).filter(r => r.y && Number(r.y) <= THIS_YEAR);
         if (!rows.length) return { empty: true };
-        return { labelTitle: 'Año', chart: { kind: 'bar', labels: rows.map(r => (Number(r.y) === THIS_YEAR ? `${r.y}*` : r.y)), series: [{ name: 'Contratos', data: rows.map(r => toNum(r.n)) }], yoy: true, partialLast: Number(rows.at(-1).y) === THIS_YEAR } };
+        return { labelTitle: 'Año', asOf: await corteSecop(q, M), chart: { kind: 'bar', labels: rows.map(r => (Number(r.y) === THIS_YEAR ? `${r.y}*` : r.y)), series: [{ name: 'Contratos', data: rows.map(r => toNum(r.n)) }], yoy: true, partialLast: Number(rows.at(-1).y) === THIS_YEAR } };
       },
     },
     {
@@ -77,6 +83,7 @@ export default {
         if (!rows.length) return { empty: true };
         return {
           labelTitle: 'Año',
+          asOf: await corteSecop(q, M),
           chart: { kind: 'bar', format: 'cop', labels: rows.map(r => (Number(r.y) === THIS_YEAR ? `${r.y}*` : r.y)), series: [{ name: 'Valor contratado', data: rows.map(r => toNum(r.v)) }], yoy: true, partialLast: Number(rows.at(-1).y) === THIS_YEAR },
           note: 'Valores tal como los registran las entidades en SECOP; pueden incluir errores de digitación. Los contratos sin fecha de firma no se incluyen en la serie.',
         };
@@ -92,7 +99,7 @@ export default {
         const m = new Map();
         for (const r of rows) m.set(canon(r.e), (m.get(canon(r.e)) || 0) + toNum(r.v));
         const data = [...m.entries()].sort((a, b) => b[1] - a[1]);
-        return { labelTitle: 'Entidad', chart: { kind: 'hbar', format: 'cop', labels: data.map(d => d[0]), series: [{ name: 'Valor contratado', data: data.map(d => d[1]) }] } };
+        return { labelTitle: 'Entidad', asOf: await corteSecop(q, M), chart: { kind: 'hbar', format: 'cop', labels: data.map(d => d[0]), series: [{ name: 'Valor contratado', data: data.map(d => d[1]) }] } };
       },
     },
     {
@@ -112,6 +119,7 @@ export default {
         const data = [...m.values()].sort((a, b) => b.n - a.n).slice(0, 12);
         return {
           labelTitle: 'Modalidad',
+          asOf: await corteSecop(q, M),
           chart: { kind: 'hbar', labels: data.map(d => d.label), series: [{ name: 'Contratos', data: data.map(d => d.n) }] },
           table: { columns: [{ key: 'label', label: 'Modalidad' }, { key: 'n', label: 'Contratos', align: 'right', format: v => num(v) }, { key: 'v', label: 'Valor', align: 'right', format: v => cop(v) }], rows: data },
         };
@@ -126,6 +134,7 @@ export default {
         const rows = await q('secop', { $select: 'fecha_de_firma_del_contrato, nombre_de_la_entidad, objeto_del_proceso, objeto_a_contratar, tipo_de_contrato, valor_contrato, url_contrato, origen', $where: where(M, filters, `fecha_de_firma_del_contrato <= '${new Date().toISOString().slice(0, 10)}T23:59:59'`), $order: 'fecha_de_firma_del_contrato DESC', $limit: 30 });
         if (!rows.length) return { empty: true };
         return {
+          asOf: await corteSecop(q, M),
           table: {
             columns: [
               { key: 'fecha_de_firma_del_contrato', label: 'Firma', format: v => fecha(v) },
@@ -149,7 +158,9 @@ export default {
       async load({ q, M }) {
         const rows = await q('sgr', { $select: 'vigencia, nombrefondo, presupuestosgrinversion, numeroproyectosaprobados, recursosaprobadosasignadosspgr', $where: `codigodaneentidad='${M.dane}'`, $order: 'vigencia DESC, presupuestosgrinversion DESC' });
         if (!rows.length) return { empty: true };
+        const anios = rows.flatMap(r => String(r.vigencia).match(/\d{4}/g) || []).map(Number);
         return {
+          asOf: anios.length ? ofYear(Math.max(...anios)) : undefined,
           table: {
             columns: [
               { key: 'vigencia', label: 'Vigencia' },

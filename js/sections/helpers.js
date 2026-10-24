@@ -1,5 +1,26 @@
 // Utilidades compartidas por las secciones.
-import { toNum } from '../format.js';
+import { toNum, mes } from '../format.js';
+import { ofDate, ofMonth, mesNumero } from '../freshness.js';
+
+// ---------- Fecha de corte de cada fuente (consultas pequeñas y cacheadas) ----------
+export async function corteFecha(q, key, field, where) {
+  const [r] = await q(key, { $select: `max(${field}) as m`, ...(where ? { $where: where } : {}) });
+  return ofDate(r?.m);
+}
+
+// El RNT publica el mes de corte como texto ("AGOSTO") y el año por separado.
+export async function corteRnt(q, M) {
+  const [r] = await q('rnt', { $select: 'max(ano) as ano, max(periodo) as periodo', $where: `cod_mun='${M.dane}'` });
+  return ofMonth(r?.ano, mesNumero(r?.periodo), { kind: 'snapshot' });
+}
+
+// Año corrido hasta la fecha de corte (incluida) del año del corte y del anterior.
+const pad = n => String(n).padStart(2, '0');
+export function ytdWhere(field, c) {
+  const md = `${pad(c.m)}-${pad(c.d || 28)}`;
+  return `((${field} between '${c.y}-01-01' and '${c.y}-${md}T23:59:59') or (${field} between '${c.y - 1}-01-01' and '${c.y - 1}-${md}T23:59:59'))`;
+}
+export const ytdLabel = c => `1 ene–${c.d ? `${c.d} ` : ''}${mes(c.m)}`;
 
 export const THIS_YEAR = new Date().getFullYear();
 

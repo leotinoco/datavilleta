@@ -5,6 +5,7 @@ import { MUNICIPIO } from './config.js';
 import { query, metadata, datasetUrl, resourceUrl } from './soda.js';
 import { drawChart, hbarHeight } from './charts.js';
 import { getFormat, escapeHtml, fecha, signedPct } from './format.js';
+import { describe, ofYear, ofDate, CRITERIO } from './freshness.js';
 
 const charts = new Set();
 
@@ -102,7 +103,9 @@ function fillKpi(tile, k) {
       const icon = flat ? '●' : up ? '▲' : '▼';
       delta = `<div class="kpi-delta ${cls}"><span aria-hidden="true">${icon}</span> ${signedPct(k.delta)} <span class="muted">${escapeHtml(k.deltaLabel || '')}</span></div>`;
     }
-    tile.innerHTML = `<div class="kpi-label">${escapeHtml(k.label)}</div><div class="kpi-value">${escapeHtml(k.value)}</div>${delta}${k.hint ? `<div class="kpi-hint">${escapeHtml(k.hint)}</div>` : ''}${k.source ? `<div class="kpi-source">Fuente: ${escapeHtml(SOURCES[k.source]?.entidad || k.source)}</div>` : ''}`;
+    const f = describe(k.asOf);
+    const asof = f ? `<div class="kpi-asof st-${f.status}" title="${escapeHtml(CRITERIO)}">Dato: <strong>${escapeHtml(f.text)}</strong> · <span><span aria-hidden="true">${f.icon}</span> ${f.label}</span></div>` : '';
+    tile.innerHTML = `<div class="kpi-label">${escapeHtml(k.label)}</div><div class="kpi-value">${escapeHtml(k.value)}</div>${delta}${k.hint ? `<div class="kpi-hint">${escapeHtml(k.hint)}</div>` : ''}${asof}${k.source ? `<div class="kpi-source">Fuente: ${escapeHtml(SOURCES[k.source]?.entidad || k.source)}</div>` : ''}`;
     if (k.href) {
       const a = el('a', 'kpi-link');
       a.href = k.href;
@@ -125,7 +128,8 @@ export function renderBlock(block, grid, filters) {
     return;
   }
   const card = el('article', `card${block.wide ? ' wide' : ''}${block.type === 'kpis' ? ' card-kpis' : ''}`);
-  card.innerHTML = `<header class="card-head"><h3>${escapeHtml(block.title)}</h3>${block.subtitle ? `<p class="card-sub">${escapeHtml(block.subtitle)}</p>` : ''}</header>`;
+  card.innerHTML = `<header class="card-head"><div class="card-titles"><h3>${escapeHtml(block.title)}</h3>${block.subtitle ? `<p class="card-sub">${escapeHtml(block.subtitle)}</p>` : ''}</div><div class="asof-slot"></div></header>`;
+  const asofSlot = card.querySelector('.asof-slot');
   const body = el('div', 'card-body');
   body.innerHTML = '<div class="loading"><span class="spinner" aria-hidden="true"></span> Consultando la fuente oficial…</div>';
   const footer = el('footer', 'card-foot');
@@ -144,12 +148,31 @@ export function renderBlock(block, grid, filters) {
     },
   };
 
+  // Vigencia del dato en el encabezado: la declara cada bloque (res.asOf); si no, se deduce de
+  // etiquetas anuales del gráfico o, en último caso, de la fecha de publicación en el portal.
+  async function paintAsOf(res) {
+    asofSlot.innerHTML = '';
+    if (!res || res.asOf === false) return;
+    let a = res.asOf;
+    if (!a && res.chart?.labels?.length && res.chart.labels.every(l => /^\d{4}\*?$/.test(l))) a = ofYear(String(res.chart.labels.at(-1)).slice(0, 4));
+    if (!a) {
+      const key = [...(block.sources || []), ...used.map(u => u.key)][0];
+      const m = key && await metadata(SOURCES[key].id).catch(() => null);
+      a = m?.rowsUpdatedAt ? ofDate(m.rowsUpdatedAt, { kind: 'portal' }) : null;
+    }
+    const f = describe(a);
+    if (!f) return;
+    asofSlot.innerHTML = `<div class="asof st-${f.status}" title="${escapeHtml(CRITERIO)}"><span class="asof-when">${escapeHtml(f.prefix)}: <strong>${escapeHtml(f.text)}</strong></span><span class="asof-status"><span aria-hidden="true">${f.icon}</span> ${f.label}</span></div>`;
+  }
+
   const run = async () => {
     used.length = 0;
+    asofSlot.innerHTML = '';
     body.innerHTML = '<div class="loading"><span class="spinner" aria-hidden="true"></span> Consultando la fuente oficial…</div>';
     try {
       const res = await block.load(ctx);
       body.innerHTML = '';
+      paintAsOf(res);
       await paint(res);
     } catch (err) {
       console.error(block.title, err);

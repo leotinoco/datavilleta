@@ -1,4 +1,5 @@
 import { num, toNum, titleCase } from '../format.js';
+import { ofYear, ofQuarter } from '../freshness.js';
 
 const nivelIrca = v => (v == null ? '—' : v <= 5 ? 'Sin riesgo' : v <= 14 ? 'Riesgo bajo' : v <= 35 ? 'Riesgo medio' : v <= 80 ? 'Riesgo alto' : 'Inviable sanitariamente');
 
@@ -42,6 +43,7 @@ export default {
         const v = x => toNum(x);
         return {
           labelTitle: 'Año',
+          asOf: ofYear(rows.at(-1).a_o),
           chart: {
             kind: 'line', format: 'dec', labels: rows.map(r => r.a_o),
             series: [
@@ -76,6 +78,7 @@ export default {
         const s = (y, f) => rows.filter(r => r.a_o_del_cargue === y).reduce((a, r) => a + (toNum(r[f]) || 0), 0);
         return {
           labelTitle: 'Año',
+          asOf: ofYear(years.at(-1)),
           chart: {
             kind: 'stacked', labels: years,
             series: [
@@ -100,6 +103,7 @@ export default {
         const empresas = [...new Set(rows.map(r => norm(r.e)))];
         return {
           labelTitle: 'Año',
+          asOf: ofYear(years.at(-1)),
           chart: { kind: 'stacked', labels: years, series: empresas.map(e => ({ name: e, data: years.map(y => rows.filter(r => r.y === y && norm(r.e) === e).reduce((a, r) => a + toNum(r.n), 0)) })) },
           note: 'El conjunto abierto cubre los años cargados por la Superservicios (actualmente 2021–2022).',
         };
@@ -120,8 +124,10 @@ export default {
         for (const r of [...hist, ...nuevo]) m.set(`${r.anno}-T${r.trimestre}`, toNum(r.n));
         const keys = [...m.keys()].sort();
         if (!keys.length) return { empty: true };
+        const [ya, tr] = keys.at(-1).split('-T');
         return {
           labelTitle: 'Trimestre',
+          asOf: ofQuarter(ya, tr),
           chart: { kind: 'line', labels: keys, series: [{ name: 'Accesos fijos', data: keys.map(k => m.get(k)) }], yoy: false },
           note: 'Se combinan dos conjuntos de MinTIC: el histórico (2017–2023 T3) y el vigente (desde 2023 T4). El primer trimestre de 2017 está incompleto en la fuente.',
         };
@@ -138,6 +144,7 @@ export default {
         const rows = await q('mintic_internet', { $select: 'tecnologia, sum(accesos_fijos_internet) as n', $where: `codigo_dane_municipio=${M.dane} and anno=${last.a} and trimestre=${lt.t}`, $group: 'tecnologia', $order: 'n DESC' });
         return {
           labelTitle: 'Tecnología',
+          asOf: ofQuarter(last.a, lt.t),
           chart: { kind: 'hbar', labels: rows.map(r => r.tecnologia), series: [{ name: 'Accesos', data: rows.map(r => toNum(r.n)) }] },
           note: `Periodo: ${last.a} T${lt.t}.`,
         };
@@ -155,6 +162,7 @@ export default {
         const top = rows.slice(0, 10);
         return {
           labelTitle: 'Proveedor',
+          asOf: ofQuarter(last.a, lt.t),
           chart: { kind: 'hbar', labels: top.map(r => titleCase(r.proveedor)), series: [{ name: 'Accesos', data: top.map(r => toNum(r.n)) }] },
           note: `Periodo: ${last.a} T${lt.t}.${rows.length > 10 ? ` Se muestran los 10 principales de ${rows.length} proveedores.` : ''}`,
         };

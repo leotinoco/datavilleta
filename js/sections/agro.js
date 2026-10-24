@@ -1,5 +1,8 @@
 import { toNum, titleCase, cop, num } from '../format.js';
-import { THIS_YEAR, cleanLabel } from './helpers.js';
+import { THIS_YEAR, cleanLabel, corteFecha } from './helpers.js';
+import { ofYear } from '../freshness.js';
+
+const corteFinagro = (q, M) => corteFecha(q, 'finagro', 'fecha_credito', `cod_municipio=${M.dane}`);
 
 export default {
   id: 'agro',
@@ -33,7 +36,7 @@ export default {
       async load({ q, M }) {
         const rows = await q('eva_hist', { $select: 'a_o, sum(producci_n_t::number) as p', $where: `c_d_mun='${M.dane}' and upper(cultivo) like 'CA%A PANELERA'`, $group: 'a_o', $order: 'a_o' });
         if (!rows.length) return { empty: true };
-        return { labelTitle: 'Año', chart: { kind: 'bar', labels: rows.map(r => r.a_o), series: [{ name: 'Producción (t de panela)', data: rows.map(r => toNum(r.p)) }], yoy: true } };
+        return { labelTitle: 'Año', asOf: ofYear(rows.at(-1).a_o, { closed: true }), chart: { kind: 'bar', labels: rows.map(r => r.a_o), series: [{ name: 'Producción (t de panela)', data: rows.map(r => toNum(r.p)) }], yoy: true } };
       },
     },
     {
@@ -56,6 +59,7 @@ export default {
         const rows = await q('eva', { $select: 'cultivo, sum(rea_sembrada::number) as s, sum(producci_n::number) as p', $where: `c_digo_dane_municipio='${M.dane}' and a_o='${last.y}' and cultivo != 'Caña'`, $group: 'cultivo', $order: 's DESC' });
         return {
           labelTitle: 'Cultivo',
+          asOf: ofYear(last.y),
           chart: { kind: 'hbar', format: 'dec', labels: rows.map(r => r.cultivo), series: [{ name: 'Área sembrada (ha)', data: rows.map(r => toNum(r.s)) }] },
           table: { columns: [{ key: 'cultivo', label: 'Cultivo' }, { key: 's', label: 'Área sembrada (ha)', align: 'right', format: v => num(toNum(v), 1) }, { key: 'p', label: 'Producción (t)', align: 'right', format: v => num(toNum(v), 1) }], rows },
           note: `Año ${last.y}.`,
@@ -72,6 +76,7 @@ export default {
         if (!rows.length) return { empty: true };
         return {
           labelTitle: 'Ciclo',
+          asOf: ofYear(rows.at(-1).vigencia),
           chart: { kind: 'line', labels: rows.map(r => `${r.vigencia} ${r.ciclo.replace('Ciclo ', 'C-')}`), series: [{ name: 'Bovinos', data: rows.map(r => toNum(r.total_bovinos_pm)) }], beginAtZero: false },
           table: { columns: [{ key: 'vigencia', label: 'Vigencia' }, { key: 'ciclo', label: 'Ciclo' }, { key: 'total_bovinos_pm', label: 'Bovinos', align: 'right', format: v => num(toNum(v)) }, { key: 'total_predios_pm', label: 'Predios', align: 'right', format: v => num(toNum(v)) }], rows },
         };
@@ -87,6 +92,7 @@ export default {
         const partial = Number(rows.at(-1).y) === THIS_YEAR;
         return {
           labelTitle: 'Año',
+          asOf: await corteFinagro(q, M),
           chart: { kind: 'bar', format: 'cop', labels: rows.map(r => (Number(r.y) === THIS_YEAR ? `${r.y}*` : r.y)), series: [{ name: 'Valor desembolsado', data: rows.map(r => toNum(r.v)) }], yoy: true, partialLast: partial },
           table: { columns: [{ key: 'y', label: 'Año' }, { key: 'n', label: 'Créditos', align: 'right', format: v => num(toNum(v)) }, { key: 'v', label: 'Valor (COP)', align: 'right', format: v => cop(toNum(v)) }], rows },
         };
@@ -99,7 +105,7 @@ export default {
       async load({ q, M }) {
         const rows = await q('finagro', { $select: 'cadena, count(*) as n, sum(valor_credito) as v', $where: `cod_municipio=${M.dane}`, $group: 'cadena', $order: 'v DESC', $limit: 12 });
         if (!rows.length) return { empty: true };
-        return { labelTitle: 'Cadena', chart: { kind: 'hbar', format: 'cop', labels: rows.map(r => titleCase(r.cadena || 'Sin cadena')), series: [{ name: 'Valor desembolsado', data: rows.map(r => toNum(r.v)) }] } };
+        return { labelTitle: 'Cadena', asOf: await corteFinagro(q, M), chart: { kind: 'hbar', format: 'cop', labels: rows.map(r => titleCase(r.cadena || 'Sin cadena')), series: [{ name: 'Valor desembolsado', data: rows.map(r => toNum(r.v)) }] } };
       },
     },
     { type: 'heading', title: 'Uso del suelo según el catastro' },

@@ -1,5 +1,9 @@
 import { num, toNum, change, cop, mes, fecha, titleCase } from '../format.js';
-import { annual, THIS_YEAR, topN } from './helpers.js';
+import { annual, THIS_YEAR, topN, corteFecha } from './helpers.js';
+import { ofYear, ofMonth, ofQuarter } from '../freshness.js';
+
+const corteRues = (q, M, key = 'rues') => corteFecha(q, key, 'fecha_matricula', `codigo_camara='${M.codigoCamaraRues}'`);
+const trimestre = f => { const d = new Date(f); return ofQuarter(d.getFullYear(), Math.ceil((d.getMonth() + 1) / 3)); };
 
 const CIIU_SECCIONES = [
   [1, 3, 'A · Agro, silvicultura y pesca'], [5, 9, 'B · Minas y canteras'], [10, 33, 'C · Industria manufacturera'],
@@ -47,6 +51,7 @@ export default {
         const labels = a.labels.map(l => (Number(l) === THIS_YEAR ? `${l}*` : l));
         return {
           labelTitle: 'Año',
+          asOf: await corteRues(q, M),
           chart: { kind: 'bar', labels, series: [{ name: 'Matrículas nuevas', data: a.data }, { name: 'Cancelaciones', data: a.years.map(y => b.data[b.years.indexOf(y)] ?? 0) }], yoy: true, partialLast: partial },
           note: 'Los picos de cancelaciones (p. ej. 2011 y 2015) suelen coincidir con depuraciones masivas del registro ordenadas por ley (matrículas sin renovar). * Año en curso.',
         };
@@ -63,6 +68,7 @@ export default {
         const partial = s.years.at(-1) === THIS_YEAR;
         return {
           labelTitle: 'Año',
+          asOf: await corteRues(q, M, 'rues_estab'),
           chart: { kind: 'bar', labels: s.labels.map(l => (Number(l) === THIS_YEAR ? `${l}*` : l)), series: [{ name: 'Establecimientos nuevos', data: s.data }], yoy: true, partialLast: partial },
         };
       },
@@ -78,6 +84,7 @@ export default {
         const data = [...m.entries()].sort((a, b) => b[1] - a[1]);
         return {
           labelTitle: 'Sección CIIU',
+          asOf: await corteRues(q, M),
           chart: { kind: 'hbar', labels: data.map(d => d[0]), series: [{ name: 'Registros activos', data: data.map(d => d[1]) }] },
         };
       },
@@ -93,6 +100,7 @@ export default {
         const data = topN(m.entries(), 7, 'Otras formas');
         return {
           labelTitle: 'Organización jurídica',
+          asOf: await corteRues(q, M),
           chart: { kind: 'hbar', labels: data.map(d => d[0]), series: [{ name: 'Registros activos', data: data.map(d => d[1]) }] },
         };
       },
@@ -115,6 +123,7 @@ export default {
         const dep = r => toNum(r.aho) + toNum(r.cdt) + toNum(r.cte);
         const lbl = prev ? `vs ${mes(d.getMonth() + 1)} ${d.getFullYear() - 1}` : '';
         return {
+          asOf: trimestre(last.f),
           kpis: [
             { label: 'Cartera de créditos', value: cop(toNum(last.cart)), delta: prev ? change(toNum(last.cart), toNum(prev.cart)) : null, deltaLabel: lbl, hint: `Corte ${fecha(last.f)}`, source: 'sfc_captaciones' },
             { label: 'Depósitos (ahorro + CDT + corriente)', value: cop(dep(last)), delta: prev ? change(dep(last), dep(prev)) : null, deltaLabel: lbl, hint: `Corte ${fecha(last.f)}`, source: 'sfc_captaciones' },
@@ -138,6 +147,7 @@ export default {
         const labels = rows.map(r => { const d = new Date(r.f); return `${mes(d.getMonth() + 1)} ${d.getFullYear()}`; });
         return {
           labelTitle: 'Corte',
+          asOf: trimestre(rows.at(-1).f),
           chart: {
             kind: 'line', format: 'cop', labels,
             series: [
@@ -156,8 +166,10 @@ export default {
       async load({ q, M }) {
         const rows = await q('sfc_puntos', { $select: 'fecha_corte as f, sum(cantidad_puntos_atencion) as n', $where: `codigo_municipio=${M.dane}`, $group: 'f', $order: 'f' });
         if (!rows.length) return { empty: true };
+        const ult = new Date(rows.at(-1).f);
         return {
           labelTitle: 'Corte',
+          asOf: ofMonth(ult.getFullYear(), ult.getMonth() + 1),
           chart: { kind: 'line', labels: rows.map(r => { const d = new Date(r.f); return `${mes(d.getMonth() + 1)} ${d.getFullYear()}`; }), series: [{ name: 'Puntos de atención', data: rows.map(r => toNum(r.n)) }] },
         };
       },
@@ -171,8 +183,10 @@ export default {
         if (!last?.f) return { empty: true };
         const rows = await q('sfc_puntos', { $select: 'nombre_entidad as e, sum(cantidad_puntos_atencion) as n', $where: `codigo_municipio=${M.dane} and fecha_corte='${last.f.slice(0, 19)}'`, $group: 'e', $order: 'n DESC' });
         const data = topN(rows.map(r => [titleCase(r.e), toNum(r.n)]), 12, 'Otras entidades');
+        const ult = new Date(last.f);
         return {
           labelTitle: 'Entidad',
+          asOf: ofMonth(ult.getFullYear(), ult.getMonth() + 1),
           chart: { kind: 'hbar', labels: data.map(d => d[0]), series: [{ name: 'Puntos de atención', data: data.map(d => d[1]) }] },
           note: `Corte: ${fecha(last.f)}.`,
         };
@@ -189,6 +203,7 @@ export default {
         const rows = await q('supersociedades', { $select: 'raz_n_social, supervisor, macrosector, a_o_de_corte, ingresos_operacionales, ganancia_p_rdida, total_activos, total_patrimonio', $where: `upper(ciudad_domicilio)='${M.nombre.toUpperCase()}'`, $order: 'a_o_de_corte DESC' });
         if (!rows.length) return { empty: true };
         return {
+          asOf: ofYear(Math.max(...rows.map(r => parseInt(r.a_o_de_corte, 10)))),
           table: {
             columns: [
               { key: 'raz_n_social', label: 'Razón social' },
@@ -214,6 +229,7 @@ export default {
         const rows = await q('supersolidaria', { $select: 'nombreentidad, nombretipo, nombreactividad, a_o', $where: `upper(municipio) like '%${M.nombre.toUpperCase()}%'`, $order: 'nombreentidad' });
         if (!rows.length) return { empty: true };
         return {
+          asOf: ofYear(Math.max(...rows.map(r => Number(r.a_o)))),
           table: {
             columns: [
               { key: 'nombreentidad', label: 'Entidad', format: v => titleCase(v) },

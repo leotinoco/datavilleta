@@ -1,4 +1,5 @@
 import { num, toNum, titleCase } from '../format.js';
+import { ofYear } from '../freshness.js';
 
 // Agrupa resultados del ICFES por año (un año puede tener varios periodos: calendario A y B).
 function porAnio(rows) {
@@ -140,6 +141,7 @@ export default {
           $where: `cole_cod_mcpio_ubicacion='${M.dane}' and periodo like '${year}%'`, $group: 'c, nat, area', $order: 'g DESC',
         });
         return {
+          asOf: ofYear(year),
           table: {
             columns: [
               { key: 'c', label: 'Establecimiento', format: v => titleCase(v) },

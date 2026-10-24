@@ -1,6 +1,7 @@
 import { fecha, titleCase, escapeHtml } from '../format.js';
 import { discover, datasetUrl } from '../soda.js';
 import { THIS_YEAR, topN } from './helpers.js';
+import { ofDate } from '../freshness.js';
 
 const UNGRD = ['ungrd_2019', 'ungrd_2020', 'ungrd_2023', 'ungrd_v2'];
 
@@ -38,6 +39,7 @@ export default {
         const tipoDe = e => (tipos.includes(e.evento) ? e.evento : 'Otros eventos');
         return {
           labelTitle: 'Año',
+          asOf: ofDate(ev[0].fecha),
           chart: {
             kind: 'stacked', partialLast: years.at(-1) === THIS_YEAR,
             labels: years.map(y => (y === THIS_YEAR ? `${y}*` : String(y))),
@@ -54,7 +56,7 @@ export default {
       async load({ q, M }) {
         const ev = await emergencias(q, M);
         if (!ev.length) return { empty: true };
-        return { table: { columns: [{ key: 'fecha', label: 'Fecha', format: v => fecha(v) }, { key: 'evento', label: 'Evento' }], rows: ev }, maxHeight: 420 };
+        return { asOf: ofDate(ev[0].fecha), table: { columns: [{ key: 'fecha', label: 'Fecha', format: v => fecha(v) }, { key: 'evento', label: 'Evento' }], rows: ev }, maxHeight: 420 };
       },
     },
     {
@@ -68,6 +70,7 @@ export default {
         const relevantes = items.filter(d => /villeta|amenaza|riesgo|vulnerab|inundaci|incendio|remoci|torrenc|catastr|cartograf/i.test(`${d.name}`));
         if (!relevantes.length) return { empty: true };
         return {
+          asOf: false,
           table: {
             columns: [
               { key: 'name', label: 'Capa / conjunto', html: (v, r) => `<a href="${datasetUrl(r.id)}" target="_blank" rel="noopener">${escapeHtml(v)}</a>` },

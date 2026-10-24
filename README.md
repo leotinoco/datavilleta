@@ -4,6 +4,17 @@ Sitio web estático que consulta **en vivo** las APIs oficiales del Estado colom
 
 Cada gráfico muestra al pie **la entidad responsable, el conjunto de datos (con enlace), la fecha de su última actualización en el portal y la consulta API exacta** usada para calcular la cifra. Todas las tarjetas permiten ver la tabla de datos y descargarla en CSV.
 
+En el encabezado de cada gráfico (y en cada indicador del Resumen) aparece **el periodo del dato más reciente** —año, trimestre, mes o día, según la fuente— y su estado:
+
+| Estado | Criterio |
+|---|---|
+| ✓ Actualizado | Dato anual del año actual o anterior; dato mensual/diario de hace 3 meses o menos (6 si es trimestral) |
+| ◔ Con rezago | Dato anual de hace 2 años; mensual/diario de hasta 12 meses (15 si es trimestral) |
+| ! Desactualizado | Más antiguo |
+| ■ Serie cerrada | La fuente dejó de publicarla y continúa en otra serie |
+
+Cuando la fuente no trae fecha propia, se muestra la fecha de publicación en el portal. Cada bloque declara su fecha en `asOf` (ver `js/freshness.js`).
+
 ## Secciones y fuentes
 
 | Sección | Fuentes (entidad – conjunto en datos.gov.co) |

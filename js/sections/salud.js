@@ -1,4 +1,10 @@
 import { num, toNum, titleCase } from '../format.js';
+import { ofMonth, ofDate } from '../freshness.js';
+
+const corteReps = async (q, M) => {
+  const [r] = await q('reps', { $select: 'max(fecha_corte_reps) as c', $where: repsWhere(M) });
+  return ofDate(r?.c);
+};
 
 const REGIMEN = { C: 'Contributivo', S: 'Subsidiado', E: 'Excepción y especiales', P: 'Especial' };
 const repsWhere = M => `upper(municipiosededesc) like '%${M.nombre.toUpperCase()}%' and upper(departamentodededesc) like '%${M.departamento.toUpperCase()}%'`;
@@ -19,6 +25,7 @@ export default {
         const last = rows.filter(r => r.ano === ano && r.mes === mes);
         const total = last.reduce((a, r) => a + toNum(r.n), 0);
         return {
+          asOf: ofMonth(ano, mes),
           kpis: [
             { label: 'Total afiliados', value: num(total), hint: `Corte ${mes}/${ano}`, source: 'afiliados' },
             ...last.sort((a, b) => toNum(b.n) - toNum(a.n)).map(r => ({ label: `Régimen ${REGIMEN[r.idregimen] || r.idregimen}`, value: num(toNum(r.n)), hint: `${num((toNum(r.n) / total) * 100, 1)} % del total`, source: 'afiliados' })),
@@ -38,6 +45,7 @@ export default {
         const nats = [...new Set(rows.map(r => r.n))];
         return {
           labelTitle: 'Clase de prestador',
+          asOf: await corteReps(q, M),
           chart: { kind: 'hstacked', labels: clases, series: nats.map(n => ({ name: n, data: clases.map(c => toNum(rows.find(r => r.c === c && r.n === n)?.k) || 0) })) },
         };
       },
@@ -51,6 +59,7 @@ export default {
         if (!rows.length) return { empty: true };
         const esPersona = r => /Profesional Independiente/i.test(r.claseprestador);
         return {
+          asOf: ofDate(rows[0].fecha_corte_reps),
           table: {
             columns: [
               { key: 'nombre', label: 'Prestador / sede' },
@@ -60,7 +69,7 @@ export default {
             // Los profesionales independientes son personas naturales: se agregan sin mostrar el nombre.
             rows: rows.map(r => ({ ...r, nombre: esPersona(r) ? 'Profesional independiente' : titleCase(r.nombresede || r.nombreprestador) })),
           },
-          note: `Corte REPS: ${rows[0].fecha_corte_reps || 'según fuente'}. Los nombres de profesionales independientes (personas naturales) no se muestran.`,
+          note: `Los nombres de profesionales independientes (personas naturales) no se muestran.`,
         };
       },
     },

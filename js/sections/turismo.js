@@ -1,5 +1,8 @@
 import { num, toNum, change, mes, MESES_CORTOS, titleCase } from '../format.js';
-import { THIS_YEAR } from './helpers.js';
+import { THIS_YEAR, corteRnt, corteFecha, ytdWhere, ytdLabel } from './helpers.js';
+import { ofMonth, mesNumero } from '../freshness.js';
+
+const corteSuper = (q, M) => corteFecha(q, 'supertransporte', 'fecha_despacho', `municipio_destino_ruta='${M.dane}'`);
 
 const RNT = M => `cod_mun='${M.dane}'`;
 
@@ -24,6 +27,7 @@ export default {
             { label: 'Camas', value: num(toNum(tot.c)), hint: 'Capacidad declarada en el RNT', source: 'rnt' },
             { label: 'Empleos reportados', value: num(toNum(tot.e)), hint: 'Suma de empleados declarados por los prestadores', source: 'rnt' },
           ],
+          asOf: ofMonth(tot.ano, mesNumero(tot.periodo), { kind: 'snapshot' }),
           note: 'El conjunto del RNT publica solo el registro vigente (una fotografía del mes de corte). Para seguir su evolución, el repositorio incluye un script que guarda una copia mensual (ver sección Fuentes).',
         };
       },
@@ -37,6 +41,7 @@ export default {
         if (!rows.length) return { empty: true };
         return {
           labelTitle: 'Subcategoría',
+          asOf: await corteRnt(q, M),
           chart: { kind: 'hbar', labels: rows.map(r => titleCase(r.sub_categoria)), series: [{ name: 'Prestadores', data: rows.map(r => toNum(r.n)) }] },
         };
       },
@@ -50,6 +55,7 @@ export default {
         if (!rows.length) return { empty: true };
         return {
           labelTitle: 'Subcategoría',
+          asOf: await corteRnt(q, M),
           chart: {
             kind: 'hbar',
             labels: rows.map(r => titleCase(r.sub_categoria)),
@@ -71,6 +77,7 @@ export default {
         });
         if (!rows.length) return { empty: true };
         return {
+          asOf: await corteRnt(q, M),
           table: {
             columns: [
               { key: 'razon_social_establecimiento', label: 'Establecimiento', format: v => titleCase(v) },
@@ -96,12 +103,15 @@ export default {
         const res = await fetch('data/snapshots.json', { cache: 'no-cache' });
         if (!res.ok) return { empty: true, emptyText: 'Aún no hay cortes guardados. Ejecute scripts/snapshot.mjs.' };
         const snaps = (await res.json()).snapshots || [];
+        const [mesTxt, anio] = (snaps.at(-1)?.rnt.corte || '').split(' ');
+        const asOf = anio ? ofMonth(anio, mesNumero(mesTxt), { kind: 'snapshot' }) : false;
         if (snaps.length < 2) {
           const s = snaps[0];
-          return { empty: true, emptyText: s ? `Hay 1 corte guardado (${s.mes}: ${num(s.rnt.prestadores)} prestadores, ${num(s.rnt.camas)} camas). La serie se dibuja desde el segundo mes.` : 'Aún no hay cortes guardados.' };
+          return { asOf, empty: true, emptyText: s ? `Hay 1 corte guardado (${s.mes}: ${num(s.rnt.prestadores)} prestadores, ${num(s.rnt.camas)} camas). La serie se dibuja desde el segundo mes.` : 'Aún no hay cortes guardados.' };
         }
         return {
           labelTitle: 'Mes',
+          asOf,
           chart: { kind: 'line', labels: snaps.map(s => s.mes), series: [{ name: 'Prestadores activos', data: snaps.map(s => s.rnt.prestadores) }, { name: 'Camas', data: snaps.map(s => s.rnt.camas) }] },
         };
       },
@@ -118,6 +128,7 @@ export default {
         const labels = data.map(r => (Number(r.y) === THIS_YEAR ? `${r.y}*` : r.y));
         return {
           labelTitle: 'Año',
+          asOf: await corteSuper(q, M),
           chart: { kind: 'bar', labels, series: [{ name: 'Pasajeros', data: data.map(r => toNum(r.p)) }], yoy: true, partialLast: Number(data.at(-1).y) === THIS_YEAR },
           table: {
             columns: [{ key: 'y', label: 'Año' }, { key: 'p', label: 'Pasajeros', align: 'right', format: v => num(toNum(v)) }, { key: 'd', label: 'Despachos', align: 'right', format: v => num(toNum(v)) }],
@@ -142,9 +153,12 @@ export default {
         // Solo años con al menos 6 meses con datos, últimos 5.
         const years = [...byYear.entries()].filter(([, arr]) => arr.filter(v => v > 0).length >= 6).slice(-5);
         if (!years.length) return { empty: true };
+        const c = await corteSuper(q, M);
         return {
           labelTitle: 'Mes',
+          asOf: c,
           chart: { kind: 'line', labels: MESES_CORTOS, series: years.map(([y, arr]) => ({ name: y, data: arr })) },
+          note: c && c.d < 28 ? `El último mes publicado (${mes(c.m)} ${c.y}) está incompleto: llega hasta el día ${c.d}.` : undefined,
         };
       },
     },
@@ -160,6 +174,7 @@ export default {
         const a = new Date(first.a); const b = new Date(first.b);
         return {
           labelTitle: 'Terminal',
+          asOf: await corteSuper(q, M),
           chart: { kind: 'hbar', labels: data.map(r => titleCase(r.terminal)), series: [{ name: 'Pasajeros', data: data.map(r => toNum(r.p)) }] },
           note: `Periodo cubierto: ${mes(a.getMonth() + 1)} ${a.getFullYear()} – ${mes(b.getMonth() + 1)} ${b.getFullYear()}.`,
         };
@@ -168,17 +183,18 @@ export default {
     {
       type: 'kpis',
       title: 'Variación interanual de pasajeros (año corrido)',
+      subtitle: 'Mismo periodo, hasta el último día publicado, en el año del corte y el anterior',
       async load({ q, M }) {
-        const rows = await q('supertransporte', { $select: 'date_extract_y(fecha_despacho) as y, date_extract_m(fecha_despacho) as m, sum(pasajeros) as p', $where: `municipio_destino_ruta='${M.dane}' and fecha_despacho >= '${THIS_YEAR - 1}-01-01'`, $group: 'y, m' });
-        const cur = rows.filter(r => Number(r.y) === THIS_YEAR);
-        if (!cur.length) return { empty: true, emptyText: 'Aún no hay datos del año en curso.' };
-        const lastM = Math.max(...cur.map(r => Number(r.m)));
-        const s = y => rows.filter(r => Number(r.y) === y && Number(r.m) <= lastM).reduce((a, r) => a + toNum(r.p), 0);
-        const a = s(THIS_YEAR); const b = s(THIS_YEAR - 1);
+        const c = await corteSuper(q, M);
+        if (!c) return { empty: true };
+        const rows = await q('supertransporte', { $select: 'date_extract_y(fecha_despacho) as y, sum(pasajeros) as p', $where: `municipio_destino_ruta='${M.dane}' and ${ytdWhere('fecha_despacho', c)}`, $group: 'y' });
+        const s = y => toNum(rows.find(r => Number(r.y) === y)?.p) || 0;
+        const a = s(c.y); const b = s(c.y - 1);
         return {
+          asOf: c,
           kpis: [
-            { label: `Pasajeros ene–${mes(lastM)} ${THIS_YEAR}`, value: num(a), delta: change(a, b), goodWhen: 'up', deltaLabel: `vs ene–${mes(lastM)} ${THIS_YEAR - 1}`, source: 'supertransporte' },
-            { label: `Pasajeros ene–${mes(lastM)} ${THIS_YEAR - 1}`, value: num(b), source: 'supertransporte' },
+            { label: `Pasajeros ${ytdLabel(c)} ${c.y}`, value: num(a), delta: change(a, b), goodWhen: 'up', deltaLabel: `vs mismo periodo ${c.y - 1}`, source: 'supertransporte' },
+            { label: `Pasajeros ${ytdLabel(c)} ${c.y - 1}`, value: num(b), source: 'supertransporte' },
           ],
         };
       },

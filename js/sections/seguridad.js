@@ -1,6 +1,7 @@
 import { DELITOS } from '../sources.js';
 import { num, toNum, change, signedPct, mes, MESES_CORTOS, fecha, titleCase } from '../format.js';
 import { THIS_YEAR } from './helpers.js';
+import { ofDate } from '../freshness.js';
 
 // Serie mensual completa de un delito para Villeta (una sola consulta por delito, reutilizada por todas las tarjetas).
 const monthly = (q, M, d) => q(`delito_${d.key}`, {
@@ -33,7 +34,7 @@ const smallMultiple = d => ({
   subtitle: 'Casos por año',
   sources: [`delito_${d.key}`],
   async load({ q, M, filters }) {
-    const rows = await monthly(q, M, d);
+    const [rows, cut] = await Promise.all([monthly(q, M, d), cutoff(q)]);
     const from = Number(filters.desde);
     const years = [];
     for (let y = from; y <= THIS_YEAR; y++) years.push(y);
@@ -41,6 +42,7 @@ const smallMultiple = d => ({
     if (!data.some(v => v > 0)) return { empty: true, emptyText: `Sin casos registrados en ${M.nombre} desde ${from}.` };
     return {
       labelTitle: 'Año',
+      asOf: ofDate(cut.date),
       chart: { kind: 'bar', height: 220, labels: years.map(y => (y === THIS_YEAR ? `${y}*` : String(y))), series: [{ name: d.nombre, data }], yoy: true, partialLast: true },
     };
   },
@@ -83,6 +85,7 @@ export default {
             rows,
           },
           maxHeight: 720,
+          asOf: ofDate(cut.date),
           note: `Datos con corte al ${fecha(cut.date)} (último hecho publicado). Variación ▲ = aumento de casos (desfavorable); ▼ = disminución. Con conteos bajos, las variaciones porcentuales son muy sensibles: lea también los valores absolutos. Fuentes: un conjunto de datos del Ministerio de Defensa por cada delito (ver enlaces en cada gráfico).`,
         };
       },
@@ -99,6 +102,7 @@ export default {
         const years = [cut.y - 2, cut.y - 1, cut.y];
         return {
           labelTitle: 'Mes',
+          asOf: ofDate(cut.date),
           chart: {
             kind: 'line', labels: MESES_CORTOS,
             series: years.map(y => ({
@@ -120,10 +124,12 @@ export default {
       async load({ q, M, filters }) {
         const rows = await q('delito_hurto_vehiculos', { $select: 'date_extract_y(fecha_hecho) as y, tipo_delito as t, sum(cantidad) as n', $where: `cod_muni='${M.dane}' and fecha_hecho >= '${filters.desde}-01-01'`, $group: 'y, t', $order: 'y' });
         if (!rows.length) return { empty: true };
+        const cut = await cutoff(q);
         const years = [...new Set(rows.map(r => Number(r.y)))].sort();
         const tipos = [...new Set(rows.map(r => r.t))];
         return {
           labelTitle: 'Año',
+          asOf: ofDate(cut.date),
           chart: {
             kind: 'stacked', partialLast: years.at(-1) === THIS_YEAR,
             labels: years.map(y => (y === THIS_YEAR ? `${y}*` : String(y))),
@@ -139,7 +145,7 @@ export default {
       async load({ q, M, filters }) {
         const rows = await q('delito_ambiente', { $select: 'descripcion_conducta as c, sum(cantidad) as n', $where: `cod_muni='${M.dane}' and fecha_hecho >= '${filters.desde}-01-01'`, $group: 'c', $order: 'n DESC' });
         if (!rows.length) return { empty: true };
-        return { labelTitle: 'Conducta', chart: { kind: 'hbar', labels: rows.map(r => titleCase(r.c)), series: [{ name: 'Casos', data: rows.map(r => toNum(r.n)) }] } };
+        return { labelTitle: 'Conducta', asOf: ofDate((await cutoff(q)).date), chart: { kind: 'hbar', labels: rows.map(r => titleCase(r.c)), series: [{ name: 'Casos', data: rows.map(r => toNum(r.n)) }] } };
       },
     },
     {
@@ -149,7 +155,7 @@ export default {
       async load({ q, M, filters }) {
         const rows = await q('delito_informaticos', { $select: 'descripcion_conducta as c, sum(cantidad) as n', $where: `cod_muni='${M.dane}' and fecha_hecho >= '${filters.desde}-01-01'`, $group: 'c', $order: 'n DESC' });
         if (!rows.length) return { empty: true };
-        return { labelTitle: 'Conducta', chart: { kind: 'hbar', labels: rows.map(r => titleCase(r.c)), series: [{ name: 'Casos', data: rows.map(r => toNum(r.n)) }] } };
+        return { labelTitle: 'Conducta', asOf: ofDate((await cutoff(q)).date), chart: { kind: 'hbar', labels: rows.map(r => titleCase(r.c)), series: [{ name: 'Casos', data: rows.map(r => toNum(r.n)) }] } };
       },
     },
   ],
