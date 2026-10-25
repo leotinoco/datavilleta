@@ -149,6 +149,42 @@
       "entidad": "Empresas Públicas de Cundinamarca (EPC)",
       "fecha": "2020-12-31",
       "url": "https://epc.com.co/wp/wp-content/uploads/2025/11/Plan-de-Aseguramiento-2020.pdf"
+    },
+    "rev2020": {
+      "titulo": "Revelaciones (notas) a los estados financieros 2020",
+      "entidad": "E.S.P. Villeta",
+      "fecha": "2020-12-31",
+      "url": "https://espvilleta.gov.co/documentacion/revelaciones-estados-financieros-2020-de-la-empresa-de-servicios-publicos-e-s-p-del-municipio-de-villeta/"
+    },
+    "rev2021": {
+      "titulo": "Revelaciones (notas) a los estados financieros 2021",
+      "entidad": "E.S.P. Villeta",
+      "fecha": "2021-12-31",
+      "url": "https://espvilleta.gov.co/documentacion/revelaciones-de-estados-financieros-2021-de-la-empresa-de-servicios-publicos-e-s-p-del-municipio-de-villeta/"
+    },
+    "rev2022": {
+      "titulo": "Revelaciones (notas) a los estados financieros 2022",
+      "entidad": "E.S.P. Villeta",
+      "fecha": "2022-12-31",
+      "url": "https://espvilleta.gov.co/documentacion/revelaciones-de-estados-financieros-2022-de-la-empresa-de-servicios-publicos-e-s-p-del-municipio-de-villeta/"
+    },
+    "rev2023": {
+      "titulo": "Revelaciones (notas) a los estados financieros 2023",
+      "entidad": "E.S.P. Villeta",
+      "fecha": "2023-12-31",
+      "url": "https://espvilleta.gov.co/documentacion/revelaciones-de-estados-financieros-2023-de-la-empresa-de-servicios-publicos-e-s-p-del-municipio-de-villeta/"
+    },
+    "rev2024": {
+      "titulo": "Revelaciones (notas) a los estados financieros 2024",
+      "entidad": "E.S.P. Villeta",
+      "fecha": "2024-12-31",
+      "url": "https://espvilleta.gov.co/documentacion/revelaciones-de-estados-financieros-2024-de-la-empresa-de-servicios-publicos-e-s-p-del-municipio-de-villeta/"
+    },
+    "rev2025": {
+      "titulo": "Revelaciones (notas) a los estados financieros 2025",
+      "entidad": "E.S.P. Villeta",
+      "fecha": "2025-12-31",
+      "url": "https://espvilleta.gov.co/documentacion/revelaciones-de-estados-financieros-2025-de-la-empresa-de-servicios-publicos-e-s-p-del-municipio-de-villeta/"
     }
   },
   "estadoResultados": [

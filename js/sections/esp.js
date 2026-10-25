@@ -25,6 +25,45 @@ const cita = (d, ...keys) => keys.map(k => {
 const SERV = [['acueducto', 'Acueducto'], ['alcantarillado', 'Alcantarillado'], ['aseo', 'Aseo']];
 const ratio = (a, b) => (a == null || !b ? null : (a / b) * 100);
 const ultimo = arr => arr[arr.length - 1];
+const veces = v => (v == null || !Number.isFinite(v) ? '—' : num(v, 2));
+const dias = v => (v == null ? '—' : num(v, 1));
+
+// Indicadores financieros por año desde el primer balance transcrito (2019). EBITDA, cobertura de intereses y
+// deuda neta usan partidas de las notas contables, disponibles desde 2020.
+function indicadores(d) {
+  const n = d.partidasNotas;
+  return d.situacionFinanciera.map(s => {
+    const k = String(s.anio);
+    const e = d.estadoResultados.find(r => r.anio === s.anio);
+    const ventas = e.ingresos.total;
+    const costo = e.costos.total;
+    const ebit = e.utilidadBruta - e.gastosAdmin;
+    const da = n.depreciacion[k] == null ? null : n.depreciacion[k] + (n.amortizacion[k] || 0);
+    const ebitda = da == null ? null : ebit + da;
+    const prov = n.cuentasPorPagarProveedores[k] ?? s.cuentasPorPagar;
+    const deuda = n.prestamosPorPagar[k] ?? null;
+    const gf = n.gastosFinancieros[k] ?? null;
+    const r = {
+      anio: s.anio, ventas, costo, ebit, da, ebitda, gf, prov, deuda, efectivo: s.efectivo,
+      utilidadNeta: e.utilidadNeta, activoTotal: s.activoTotal, pasivoTotal: s.pasivoTotal, patrimonio: s.patrimonio,
+      razon: s.activoCorriente / s.pasivoCorriente,
+      acida: (s.activoCorriente - s.inventarios) / s.pasivoCorriente,
+      acidaEstricta: (s.activoCorriente - s.inventarios - (s.anticipos || 0) - (s.anticipoImpuestos || 0)) / s.pasivoCorriente,
+      capitalTrabajo: s.activoCorriente - s.pasivoCorriente,
+      ktno: s.cuentasPorCobrar + s.inventarios - prov,
+      mBruto: ratio(e.utilidadBruta, ventas), mOper: ratio(ebit, ventas), mEbitda: ratio(ebitda, ventas), mNeto: ratio(e.utilidadNeta, ventas),
+      roa: ratio(e.utilidadNeta, s.activoTotal), roe: ratio(e.utilidadNeta, s.patrimonio),
+      endeud: ratio(s.pasivoTotal, s.activoTotal), apalanc: s.pasivoTotal / s.patrimonio,
+      cobertura: gf ? ebit / gf : null,
+      deudaNeta: deuda == null ? null : deuda - s.efectivo,
+      dso: (s.cuentasPorCobrar * 365) / ventas, dio: (s.inventarios * 365) / costo, dpo: (prov * 365) / costo,
+    };
+    r.deudaNetaEbitda = r.deudaNeta == null || !ebitda ? null : r.deudaNeta / ebitda;
+    r.ccc = r.dio + r.dso - r.dpo;
+    return r;
+  });
+}
+const FUENTES_EF = ['ef2025', 'ef2023', 'ef2021', 'ef2020', 'rev2025', 'rev2024', 'rev2023', 'rev2022', 'rev2021', 'rev2020'];
 
 export default {
   id: 'esp',
@@ -439,46 +478,146 @@ export default {
         };
       },
     },
+
+    { type: 'heading', title: 'Indicadores financieros', text: 'Calculados con los estados financieros de cada año y, para EBITDA, intereses y deuda, con las notas contables (revelaciones). Ventas = ingresos de actividades ordinarias; EBIT = utilidad operativa (utilidad bruta − gastos de administración y operación); EBITDA = EBIT + depreciación + amortización. Los márgenes y la rentabilidad 2024–2025 coinciden con el cálculo de la Superservicios.' },
     {
-      type: 'table',
-      title: 'Indicadores financieros',
-      subtitle: 'Calculados a partir de los estados financieros (2024 y 2025 coinciden con el cálculo de la Superservicios)',
+      type: 'kpis',
+      title: 'Resumen financiero',
       wide: true,
       async load() {
         const d = await datos();
-        const rows = d.situacionFinanciera.map(s => {
-          const e = d.estadoResultados.find(r => r.anio === s.anio);
-          return {
-            anio: s.anio,
-            razon: s.activoCorriente / s.pasivoCorriente,
-            endeud: ratio(s.pasivoTotal, s.activoTotal),
-            mBruto: ratio(e.utilidadBruta, e.ingresos.total),
-            mOper: ratio(e.utilidadBruta - e.gastosAdmin, e.ingresos.total),
-            mNeto: ratio(e.utilidadNeta, e.ingresos.total),
-            roa: ratio(e.utilidadNeta, s.activoTotal),
-            dias: (s.cuentasPorCobrar * 365) / e.ingresos.total,
-            cubr: e.ingresos.total / (e.costos.total + e.gastosAdmin),
-          };
-        });
-        const p = v => pct(v, 2);
+        const rows = indicadores(d);
+        const [p, u] = rows.slice(-2);
+        const a = ofYear(u.anio);
+        const vs = `vs ${p.anio}`;
         return {
-          asOf: ofYear(ultimo(rows).anio),
+          asOf: a,
+          kpis: [
+            { label: `Razón corriente ${u.anio}`, value: veces(u.razon), delta: change(u.razon, p.razon), goodWhen: 'up', deltaLabel: vs, hint: 'Pesos de activo corriente por cada peso de pasivo corriente' },
+            { label: `Prueba ácida ${u.anio}`, value: veces(u.acida), delta: change(u.acida, p.acida), goodWhen: 'up', deltaLabel: vs, hint: `Sin inventarios ni anticipos de impuestos: ${veces(u.acidaEstricta)}` },
+            { label: `Margen EBITDA ${u.anio}`, value: pct(u.mEbitda, 1), hint: `${p.anio}: ${pct(p.mEbitda, 1)} · EBITDA ${cop(u.ebitda)}` },
+            { label: `Margen neto ${u.anio}`, value: pct(u.mNeto, 2), hint: `${p.anio}: ${pct(p.mNeto, 2)}` },
+            { label: `ROE ${u.anio}`, value: pct(u.roe, 2), hint: `ROA: ${pct(u.roa, 2)}` },
+            { label: `Endeudamiento ${u.anio}`, value: pct(u.endeud, 1), delta: change(u.endeud, p.endeud), goodWhen: 'down', deltaLabel: vs, hint: 'Pasivo total ÷ activo total' },
+            { label: 'Deuda financiera', value: cop(u.deuda), hint: `Sin préstamos: caja neta de ${cop(-u.deudaNeta)}` },
+            { label: `Ciclo de conversión de efectivo ${u.anio}`, value: `${dias(u.ccc)} días`, delta: change(u.ccc, p.ccc), goodWhen: 'down', deltaLabel: vs, hint: `Cobro ${dias(u.dso)} + inventario ${dias(u.dio)} − pago ${dias(u.dpo)} días` },
+          ],
+          sourceText: cita(d, ...FUENTES_EF),
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: '1. Liquidez: capacidad de pago a corto plazo',
+      subtitle: 'Razón corriente y prueba ácida (veces)',
+      async load() {
+        const d = await datos();
+        const rows = indicadores(d);
+        const u = ultimo(rows);
+        return {
+          labelTitle: 'Año', asOf: ofYear(u.anio),
+          chart: { kind: 'line', format: 'dec2', labels: rows.map(r => String(r.anio)), series: [{ name: 'Razón corriente', data: rows.map(r => r.razon) }, { name: 'Prueba ácida', data: rows.map(r => r.acida) }, { name: 'Prueba ácida sin anticipos', data: rows.map(r => r.acidaEstricta) }], threshold: { value: 1, label: 'Equilibrio (1,0)' } },
           table: {
             columns: [
               { key: 'anio', label: 'Año' },
-              { key: 'razon', label: 'Razón corriente', align: 'right', format: v => num(v, 2) },
-              { key: 'endeud', label: 'Endeudamiento', align: 'right', format: p },
-              { key: 'mBruto', label: 'Margen bruto', align: 'right', format: p },
-              { key: 'mOper', label: 'Margen operacional', align: 'right', format: p },
-              { key: 'mNeto', label: 'Margen neto', align: 'right', format: p },
-              { key: 'roa', label: 'ROA', align: 'right', format: p },
-              { key: 'dias', label: 'Días de cartera', align: 'right', format: v => num(v, 1) },
-              { key: 'cubr', label: 'Cubrimiento costos y gastos', align: 'right', format: v => num(v, 2) },
+              { key: 'razon', label: 'Razón corriente', align: 'right', format: veces },
+              { key: 'acida', label: 'Prueba ácida', align: 'right', format: veces },
+              { key: 'acidaEstricta', label: 'Prueba ácida sin anticipos', align: 'right', format: veces },
+              { key: 'capitalTrabajo', label: 'Capital de trabajo', align: 'right', format: cop },
+              { key: 'ktno', label: 'KTNO', align: 'right', format: cop },
             ],
             rows,
           },
-          note: 'Razón corriente = activo corriente ÷ pasivo corriente (más de 1 indica capacidad de pago de corto plazo). Margen operacional = (utilidad bruta − gastos de administración) ÷ ingresos. Cubrimiento < 1: los ingresos por servicios no alcanzan a cubrir costos y gastos operacionales.',
-          sourceText: cita(d, 'ef2025', 'ef2023', 'ef2021', 'ef2020', 'sspd2026'),
+          note: `Razón corriente = activo corriente ÷ pasivo corriente. Prueba ácida = (activo corriente − inventarios) ÷ pasivo corriente; la versión "sin anticipos" también descuenta anticipos y saldos a favor de impuestos (${cop(ultimo(d.situacionFinanciera).anticipoImpuestos)} en ${u.anio}), que no son efectivo disponible. La Superservicios reporta 0,73 (2024) y 0,86 (2025) con su propia definición. KTNO (capital de trabajo neto operativo) = cuentas por cobrar + inventarios − cuentas por pagar a proveedores: ${cop(u.ktno)} en ${u.anio} frente a ${cop(rows.at(-2).ktno)} en ${rows.at(-2).anio}, porque las cuentas por pagar a proveedores se cuadruplicaron. Ver tabla para capital de trabajo y KTNO por año.`,
+          sourceText: cita(d, ...FUENTES_EF, 'sspd2026'),
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: '2. Rentabilidad: beneficio sobre ventas e inversión',
+      subtitle: 'Márgenes sobre ventas (%)',
+      async load() {
+        const d = await datos();
+        const rows = indicadores(d);
+        const u = ultimo(rows);
+        return {
+          labelTitle: 'Año', asOf: ofYear(u.anio),
+          chart: { kind: 'line', format: 'pct', beginAtZero: false, labels: rows.map(r => String(r.anio)), series: [{ name: 'Margen bruto', data: rows.map(r => r.mBruto) }, { name: 'Margen EBITDA', data: rows.map(r => r.mEbitda) }, { name: 'Margen operativo', data: rows.map(r => r.mOper) }, { name: 'Margen neto', data: rows.map(r => r.mNeto) }], threshold: { value: 0, label: 'Cero' } },
+          table: {
+            columns: [
+              { key: 'anio', label: 'Año' },
+              { key: 'ventas', label: 'Ventas', align: 'right', format: cop },
+              { key: 'mBruto', label: 'Margen bruto', align: 'right', format: v => pct(v, 2) },
+              { key: 'ebit', label: 'EBIT', align: 'right', format: cop },
+              { key: 'mOper', label: 'Margen operativo', align: 'right', format: v => pct(v, 2) },
+              { key: 'da', label: 'Depreciación y amortización', align: 'right', format: cop },
+              { key: 'ebitda', label: 'EBITDA', align: 'right', format: cop },
+              { key: 'mEbitda', label: 'Margen EBITDA', align: 'right', format: v => pct(v, 2) },
+              { key: 'mNeto', label: 'Margen neto', align: 'right', format: v => pct(v, 2) },
+              { key: 'roa', label: 'ROA', align: 'right', format: v => pct(v, 2) },
+              { key: 'roe', label: 'ROE', align: 'right', format: v => pct(v, 2) },
+            ],
+            rows,
+          },
+          note: `Margen bruto = utilidad bruta ÷ ventas; operativo = EBIT ÷ ventas; EBITDA = (EBIT + depreciación + amortización) ÷ ventas; neto = utilidad neta ÷ ventas. ROA = utilidad neta ÷ activo total; ROE = utilidad neta ÷ patrimonio (en ${u.anio}: ${pct(u.roa, 2)} y ${pct(u.roe, 2)}). El margen operativo es negativo todos los años: la operación pierde dinero y el resultado final depende de ingresos no operacionales. El EBITDA es positivo porque la depreciación de redes y plantas (${cop(d.partidasNotas.depreciacion[String(u.anio)])} en ${u.anio}) no es salida de caja, pero bajó a ${pct(u.mEbitda, 1)} de las ventas. EBITDA desde 2020 (las notas de 2019 están escaneadas sin el detalle).`,
+          sourceText: cita(d, ...FUENTES_EF, 'sspd2026'),
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: '3. Endeudamiento y solvencia: riesgo y estructura de capital',
+      subtitle: 'Nivel de endeudamiento: pasivo total ÷ activo total (%)',
+      async load() {
+        const d = await datos();
+        const rows = indicadores(d);
+        const u = ultimo(rows);
+        return {
+          labelTitle: 'Año', asOf: ofYear(u.anio),
+          chart: { kind: 'bar', format: 'pct', labels: rows.map(r => String(r.anio)), series: [{ name: 'Nivel de endeudamiento', data: rows.map(r => r.endeud) }] },
+          table: {
+            columns: [
+              { key: 'anio', label: 'Año' },
+              { key: 'endeud', label: 'Endeudamiento', align: 'right', format: v => pct(v, 2) },
+              { key: 'apalanc', label: 'Apalancamiento (pasivo ÷ patrimonio)', align: 'right', format: v => num(v, 3) },
+              { key: 'gf', label: 'Gastos financieros', align: 'right', format: cop },
+              { key: 'cobertura', label: 'Cobertura de intereses (EBIT ÷ gastos financieros)', align: 'right', format: v => (v == null ? '—' : num(v, 1)) },
+              { key: 'deuda', label: 'Deuda financiera', align: 'right', format: cop },
+              { key: 'efectivo', label: 'Caja', align: 'right', format: cop },
+              { key: 'deudaNetaEbitda', label: 'Deuda neta ÷ EBITDA', align: 'right', format: v => (v == null ? '—' : num(v, 2)) },
+            ],
+            rows,
+          },
+          note: `Apalancamiento = pasivo total ÷ patrimonio: ${num(u.apalanc, 3)} veces en ${u.anio}; todo el pasivo es de corto plazo (proveedores, impuestos, nómina). La empresa no tiene préstamos (nota de préstamos por pagar sin saldo en 2020–${u.anio}), así que su deuda neta es negativa: tiene caja neta de ${cop(-u.deudaNeta)}, ${num(-u.deudaNetaEbitda, 1)} veces su EBITDA; un valor negativo de deuda neta ÷ EBITDA indica caja neta, no riesgo. Los "gastos financieros" son comisiones y gastos bancarios, no intereses; la cobertura sale negativa porque el EBIT es negativo (pérdida operativa), no por exceso de deuda. Ver tabla para todos los indicadores.`,
+          sourceText: cita(d, ...FUENTES_EF),
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: '4. Eficiencia y rotación: ciclo operativo del dinero',
+      subtitle: 'Días de cartera, inventario, proveedores y ciclo de conversión de efectivo',
+      async load() {
+        const d = await datos();
+        const rows = indicadores(d);
+        const u = ultimo(rows);
+        return {
+          labelTitle: 'Año', asOf: ofYear(u.anio),
+          chart: { kind: 'line', format: 'dec', labels: rows.map(r => String(r.anio)), series: [{ name: 'Días de cartera (DSO)', data: rows.map(r => r.dso) }, { name: 'Días de inventario (DIO)', data: rows.map(r => r.dio) }, { name: 'Días de proveedores (DPO)', data: rows.map(r => r.dpo) }, { name: 'Ciclo de conversión (CCC)', data: rows.map(r => r.ccc) }] },
+          table: {
+            columns: [
+              { key: 'anio', label: 'Año' },
+              { key: 'dso', label: 'Días de cartera (DSO)', align: 'right', format: dias },
+              { key: 'dio', label: 'Días de inventario (DIO)', align: 'right', format: dias },
+              { key: 'dpo', label: 'Días de proveedores (DPO)', align: 'right', format: dias },
+              { key: 'ccc', label: 'Ciclo de conversión (CCC)', align: 'right', format: dias },
+              { key: 'prov', label: 'Cuentas por pagar a proveedores', align: 'right', format: cop },
+            ],
+            rows,
+          },
+          note: `DSO = cuentas por cobrar × 365 ÷ ventas; DIO = inventarios × 365 ÷ costo de ventas; DPO = cuentas por pagar a proveedores × 365 ÷ costo de ventas; CCC = DIO + DSO − DPO. En ${u.anio} la empresa tardó ${dias(u.dso)} días en cobrar y ${dias(u.dpo)} en pagar, y el ciclo bajó a ${dias(u.ccc)} días (${dias(rows.at(-2).ccc)} en ${rows.at(-2).anio}) porque cobró más rápido y pagó más tarde a sus proveedores. Proveedores = adquisición de bienes y servicios según las notas (2021–${u.anio}); para 2019–2020 se usa el total de cuentas por pagar del balance.`,
+          sourceText: cita(d, ...FUENTES_EF),
         };
       },
     },
