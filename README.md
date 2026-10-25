@@ -2,6 +2,8 @@
 
 Sitio web estático que consulta **en vivo** las APIs oficiales del Estado colombiano (principalmente la API SODA/Socrata de [datos.gov.co](https://www.datos.gov.co)) y presenta, por secciones y con gráficos de comparación año a año, toda la información pública disponible sobre Villeta (código DANE 25875).
 
+> 📘 Documentación técnica completa (arquitectura, fuentes, cómo actualizar los datos sin API y cómo publicar): [`docs/DOCUMENTACION.md`](docs/DOCUMENTACION.md).
+
 Cada gráfico muestra al pie **la entidad responsable, el conjunto de datos (con enlace), la fecha de su última actualización en el portal y la consulta API exacta** usada para calcular la cifra. Todas las tarjetas permiten ver la tabla de datos y descargarla en CSV.
 
 En el encabezado de cada gráfico (y en cada indicador del Resumen) aparece **el periodo del dato más reciente** —año, trimestre, mes o día, según la fuente— y su estado:
