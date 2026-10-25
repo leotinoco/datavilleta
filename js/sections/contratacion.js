@@ -1,5 +1,5 @@
 import { num, toNum, cop, change, fecha, titleCase, escapeHtml } from '../format.js';
-import { THIS_YEAR, textKey, corteFecha } from './helpers.js';
+import { THIS_YEAR, corteFecha } from './helpers.js';
 import { ofYear } from '../freshness.js';
 
 // Último contrato firmado (sin fechas futuras mal digitadas) = fecha de corte de SECOP para Villeta.
@@ -18,7 +18,65 @@ const ENTIDADES = [
   { value: 'sena', label: 'SENA (centro en Villeta)', re: /\bSENA\b/, where: "upper(nombre_de_la_entidad) like '%SENA %'" },
   { value: 'inpec', label: 'Establecimiento penitenciario', re: /PENITENCIARI/, where: "upper(nombre_de_la_entidad) like '%PENITENCIARI%'" },
 ];
-const canon = name => ENTIDADES.slice(1).find(e => e.re.test(String(name).toUpperCase()))?.label || titleCase(name);
+// Las entidades no listadas se agrupan: SECOP trae algún registro con nombre de persona natural como "entidad".
+const canon = name => ENTIDADES.slice(1).find(e => e.re.test(String(name).toUpperCase()))?.label || 'Otras entidades';
+
+// Modalidades y tipos de contrato agrupados (SECOP I y II escriben el mismo concepto de varias formas).
+const MODALIDADES = [
+  ['Contratación directa', /DIRECTA/],
+  ['Régimen especial', /R.GIMEN ESPECIAL/],
+  ['Mínima cuantía', /M.NIMA CUANT/],
+  ['Selección abreviada y subasta', /ABREVIADA|SUBASTA/],
+  ['Licitación pública', /LICITACI/],
+  ['Concurso de méritos', /CONCURSO/],
+  ['Otras modalidades', /./],
+];
+const TIPOS_CONTRATO = [
+  ['Prestación de servicios', /PRESTACI.N DE SERVICIOS/],
+  ['Suministro', /SUMINISTRO/],
+  ['Obra', /^OBRA/],
+  ['Compraventa', /COMPRAVENTA|VENTA MUEBLES/],
+  ['Consultoría e interventoría', /CONSULTOR|INTERVENTOR/],
+  ['Arrendamiento y comodato', /ARRENDAMIENTO|COMODATO/],
+  ['Otros tipos', /./],
+];
+const grupoDe = (lista, v) => lista.find(([, re]) => re.test(String(v || '').toUpperCase()))?.[0] ?? lista.at(-1)[0];
+const anioLabel = y => (Number(y) === THIS_YEAR ? `${y}*` : String(y));
+
+// Serie por año y grupo: { anios, grupos (ordenados por valor total), n[grupo][i], v[grupo][i] }.
+function porAnioYGrupo(rows, grupo, orden) {
+  const anios = [...new Set(rows.map(r => Number(r.y)))].filter(y => y && y <= THIS_YEAR).sort((a, b) => a - b);
+  const acc = new Map();
+  for (const r of rows) {
+    const i = anios.indexOf(Number(r.y));
+    if (i < 0) continue;
+    const g = grupo(r.g);
+    if (!acc.has(g)) acc.set(g, { n: anios.map(() => 0), v: anios.map(() => 0) });
+    acc.get(g).n[i] += toNum(r.n) || 0;
+    acc.get(g).v[i] += toNum(r.v) || 0;
+  }
+  const total = g => acc.get(g)[orden].reduce((a, b) => a + b, 0);
+  // Máximo 8 series (paleta categórica): las menores se suman al grupo "Otras…".
+  const otras = [...acc.keys()].find(g => /^Otr/.test(g)) || 'Otras';
+  const ordenados = [...acc.keys()].filter(g => g !== otras).sort((a, b) => total(b) - total(a));
+  for (const g of ordenados.slice(7)) {
+    if (!acc.has(otras)) acc.set(otras, { n: anios.map(() => 0), v: anios.map(() => 0) });
+    acc.get(g).n.forEach((x, i) => { acc.get(otras).n[i] += x; });
+    acc.get(g).v.forEach((x, i) => { acc.get(otras).v[i] += x; });
+    acc.delete(g);
+  }
+  const grupos = [...ordenados.slice(0, 7), ...(acc.has(otras) ? [otras] : [])];
+  return { anios, grupos, n: Object.fromEntries(grupos.map(g => [g, acc.get(g).n])), v: Object.fromEntries(grupos.map(g => [g, acc.get(g).v])) };
+}
+const tablaAnioGrupo = (s, etiqueta) => ({
+  columns: [
+    { key: 'y', label: 'Año' },
+    { key: 'g', label: etiqueta },
+    { key: 'n', label: 'Contratos', align: 'right', format: v => num(v) },
+    { key: 'v', label: 'Valor', align: 'right', format: v => cop(v) },
+  ],
+  rows: s.anios.flatMap((y, i) => s.grupos.map(g => ({ y: anioLabel(y), g, n: s.n[g][i], v: s.v[g][i] })).filter(r => r.n)).reverse(),
+});
 
 // Igualdad exacta (usa índice): un filtro con upper()/like sobre SECOP tarda minutos.
 export const secopBase = M => `municipio_entidad in ('${M.nombre}', '${M.nombre.toUpperCase()}')`;
@@ -91,37 +149,67 @@ export default {
     },
     {
       type: 'chart',
-      title: 'Valor contratado por entidad',
-      subtitle: `Acumulado ${THIS_YEAR - 4}–${THIS_YEAR}`,
+      title: 'Valor contratado por entidad y año',
+      subtitle: 'Pesos corrientes, según fecha de firma',
+      wide: true,
       async load({ q, M, filters }) {
-        const rows = await q('secop', { $select: 'nombre_de_la_entidad as e, count(*) as n, sum(valor_contrato) as v', $where: where(M, filters, `fecha_de_firma_del_contrato >= '${THIS_YEAR - 4}-01-01'`), $group: 'e' });
+        const rows = await q('secop', { $select: 'date_extract_y(fecha_de_firma_del_contrato) as y, nombre_de_la_entidad as g, count(*) as n, sum(valor_contrato) as v', $where: where(M, filters), $group: 'y, g', $limit: 5000 });
         if (!rows.length) return { empty: true };
-        const m = new Map();
-        for (const r of rows) m.set(canon(r.e), (m.get(canon(r.e)) || 0) + toNum(r.v));
-        const data = [...m.entries()].sort((a, b) => b[1] - a[1]);
-        return { labelTitle: 'Entidad', asOf: await corteSecop(q, M), chart: { kind: 'hbar', format: 'cop', labels: data.map(d => d[0]), series: [{ name: 'Valor contratado', data: data.map(d => d[1]) }] } };
+        const s = porAnioYGrupo(rows, canon, 'v');
+        const total = i => s.grupos.reduce((t, g) => t + s.v[g][i], 0);
+        const ult = s.anios.at(-1) === THIS_YEAR ? s.anios.length - 2 : s.anios.length - 1;
+        const lider = s.grupos.map(g => [g, s.v[g][ult]]).sort((a, b) => b[1] - a[1])[0];
+        return {
+          labelTitle: 'Año',
+          asOf: await corteSecop(q, M),
+          chart: { kind: 'stacked', format: 'cop', labels: s.anios.map(anioLabel), series: s.grupos.map(g => ({ name: g, data: s.v[g], muted: g === 'Otras entidades' })), partialLast: s.anios.at(-1) === THIS_YEAR, footer: i => `Total del año: ${cop(total(i))}${i > 0 ? ` (${total(i - 1) ? `${total(i) >= total(i - 1) ? '+' : ''}${num(change(total(i), total(i - 1)), 0)} %` : '—'} vs ${s.anios[i - 1]})` : ''}` },
+          table: tablaAnioGrupo(s, 'Entidad'),
+          note: `En ${s.anios[ult]}, último año completo, la entidad que más contrató fue ${lider[0]} (${cop(lider[1])} de ${cop(total(ult))}). Los años anteriores a 2014 están incompletos porque varias entidades no publicaban en SECOP. * Año en curso (barra más clara).`,
+        };
       },
     },
     {
       type: 'chart',
-      title: 'Contratos por modalidad de selección',
-      subtitle: `Número de contratos ${THIS_YEAR - 2}–${THIS_YEAR}`,
+      title: 'Contratos por modalidad de selección y año',
+      subtitle: 'Número de contratos firmados en cada año, por modalidad',
+      wide: true,
       async load({ q, M, filters }) {
-        const rows = await q('secop', { $select: 'modalidad_de_contrataci_n as m, count(*) as n, sum(valor_contrato) as v', $where: where(M, filters, `fecha_de_firma_del_contrato >= '${THIS_YEAR - 2}-01-01'`), $group: 'm' });
+        const rows = await q('secop', { $select: 'date_extract_y(fecha_de_firma_del_contrato) as y, modalidad_de_contrataci_n as g, count(*) as n, sum(valor_contrato) as v', $where: where(M, filters), $group: 'y, g', $limit: 5000 });
         if (!rows.length) return { empty: true };
-        const m = new Map();
-        for (const r of rows) {
-          const k = textKey(r.m) || 'sin dato';
-          const e = m.get(k) || { label: titleCase(r.m || 'Sin dato'), n: 0, v: 0 };
-          e.n += toNum(r.n); e.v += toNum(r.v) || 0;
-          m.set(k, e);
-        }
-        const data = [...m.values()].sort((a, b) => b.n - a.n).slice(0, 12);
+        const s = porAnioYGrupo(rows, v => grupoDe(MODALIDADES, v), 'n');
+        const ult = s.anios.at(-1) === THIS_YEAR ? s.anios.length - 2 : s.anios.length - 1;
+        const sum = (k, i, gs = s.grupos) => gs.reduce((t, g) => t + s[k][g][i], 0);
+        const sinCompetencia = s.grupos.filter(g => g === 'Contratación directa' || g === 'Régimen especial');
+        const shareN = (sum('n', ult, sinCompetencia) / sum('n', ult)) * 100;
+        const shareV = (sum('v', ult, sinCompetencia) / sum('v', ult)) * 100;
         return {
-          labelTitle: 'Modalidad',
+          labelTitle: 'Año',
           asOf: await corteSecop(q, M),
-          chart: { kind: 'hbar', labels: data.map(d => d.label), series: [{ name: 'Contratos', data: data.map(d => d.n) }] },
-          table: { columns: [{ key: 'label', label: 'Modalidad' }, { key: 'n', label: 'Contratos', align: 'right', format: v => num(v) }, { key: 'v', label: 'Valor', align: 'right', format: v => cop(v) }], rows: data },
+          chart: { kind: 'stacked', labels: s.anios.map(anioLabel), series: s.grupos.map(g => ({ name: g, data: s.n[g], muted: g === 'Otras modalidades' })), partialLast: s.anios.at(-1) === THIS_YEAR, footer: i => `Total: ${num(sum('n', i))} contratos por ${cop(sum('v', i))}` },
+          table: tablaAnioGrupo(s, 'Modalidad'),
+          note: `En ${s.anios[ult]}, el ${num(shareN, 0)} % de los contratos (${num(shareV, 0)} % del valor) se adjudicó sin concurso de varios oferentes: contratación directa o régimen especial. El régimen especial lo usan sobre todo el Hospital, la ESP y los colegios, que no contratan por la Ley 80. Use "Ver tabla" para el valor por modalidad y año. * Año en curso.`,
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'Contratos por tipo y año',
+      subtitle: 'Número de contratos firmados en cada año, por tipo de contrato',
+      wide: true,
+      async load({ q, M, filters }) {
+        const rows = await q('secop', { $select: 'date_extract_y(fecha_de_firma_del_contrato) as y, tipo_de_contrato as g, count(*) as n, sum(valor_contrato) as v', $where: where(M, filters), $group: 'y, g', $limit: 5000 });
+        if (!rows.length) return { empty: true };
+        const s = porAnioYGrupo(rows, v => grupoDe(TIPOS_CONTRATO, v), 'n');
+        const ult = s.anios.at(-1) === THIS_YEAR ? s.anios.length - 2 : s.anios.length - 1;
+        const tot = (k, i) => s.grupos.reduce((t, g) => t + s[k][g][i], 0);
+        const ps = 'Prestación de servicios';
+        const obra = 'Obra';
+        return {
+          labelTitle: 'Año',
+          asOf: await corteSecop(q, M),
+          chart: { kind: 'stacked', labels: s.anios.map(anioLabel), series: s.grupos.map(g => ({ name: g, data: s.n[g], muted: g === 'Otros tipos' })), partialLast: s.anios.at(-1) === THIS_YEAR, footer: i => `Total: ${num(tot('n', i))} contratos por ${cop(tot('v', i))}` },
+          table: tablaAnioGrupo(s, 'Tipo de contrato'),
+          note: `En ${s.anios[ult]}, ${num(s.n[ps]?.[ult] || 0)} de ${num(tot('n', ult))} contratos fueron de prestación de servicios (${num(((s.n[ps]?.[ult] || 0) / tot('n', ult)) * 100, 0)} %), por ${cop(s.v[ps]?.[ult] || 0)}; los de obra fueron ${num(s.n[obra]?.[ult] || 0)} por ${cop(s.v[obra]?.[ult] || 0)}. Use "Ver tabla" para el valor por tipo y año. * Año en curso.`,
         };
       },
     },
