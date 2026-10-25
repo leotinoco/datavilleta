@@ -38,7 +38,9 @@ const FONT = { family: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif
  *   beginAtZero, min, max
  * }
  */
-export function drawChart(canvas, spec) {
+// opts.axisCanvas: lienzo fijo donde se copia el eje Y (gráficos que se desplazan en horizontal).
+// opts.legendEl: contenedor HTML para la leyenda, fuera del área desplazable.
+export function drawChart(canvas, spec, opts = {}) {
   const P = palette();
   const fmt = getFormat(spec.format);
   const horizontal = spec.kind === 'hbar' || spec.kind === 'hstacked';
@@ -92,9 +94,28 @@ export function drawChart(canvas, spec) {
   // Valor directo en el extremo de la barra: barras horizontales de una serie, o columnas cuando son pocas.
   const tipLabels = spec.series.length === 1 && ((spec.kind === 'hbar' && n <= 25) || (spec.kind === 'bar' && n <= 6));
 
-  const config = {
-    data: { labels: spec.labels, datasets },
-    plugins: tipLabels ? [{
+  const plugins = [];
+  if (opts.axisCanvas) {
+    // Copia la franja del eje Y a un lienzo pegado al borde izquierdo del contenedor desplazable.
+    plugins.push({
+      id: 'stickyAxis',
+      afterRender(chart) {
+        const ax = opts.axisCanvas;
+        const dpr = chart.currentDevicePixelRatio;
+        // Sin incluir el primer punto de la serie, que se dibuja justo en el borde del área.
+        const w = Math.floor(chart.chartArea.left) - 3;
+        const h = Math.ceil(chart.chartArea.bottom) + 1;
+        ax.width = w * dpr; ax.height = h * dpr;
+        Object.assign(ax.style, { width: `${w}px`, height: `${h}px`, marginRight: `-${w}px` });
+        const c = ax.getContext('2d');
+        c.fillStyle = P.surface;
+        c.fillRect(0, 0, ax.width, ax.height);
+        c.drawImage(chart.canvas, 0, 0, w * dpr, h * dpr, 0, 0, w * dpr, h * dpr);
+      },
+    });
+  }
+  if (tipLabels) {
+    plugins.push({
       id: 'tipLabels',
       afterDatasetsDraw(chart) {
         const { ctx } = chart;
@@ -115,7 +136,12 @@ export function drawChart(canvas, spec) {
         });
         ctx.restore();
       },
-    }] : [],
+    });
+  }
+
+  const config = {
+    data: { labels: spec.labels, datasets },
+    plugins,
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -127,7 +153,7 @@ export function drawChart(canvas, spec) {
       layout: { padding: { top: tipLabels && !horizontal ? 22 : 4, right: tipLabels && horizontal ? 72 : 12, left: 0, bottom: tipLabels && !horizontal ? 16 : 0 } },
       plugins: {
         legend: {
-          display: legendCount >= 2,
+          display: legendCount >= 2 && !opts.legendEl,
           position: 'top',
           align: 'start',
           labels: {
@@ -205,7 +231,30 @@ export function drawChart(canvas, spec) {
     },
   };
   // eslint-disable-next-line no-undef
-  return new Chart(canvas, config);
+  const chart = new Chart(canvas, config);
+  if (opts.legendEl && legendCount >= 2) htmlLegend(chart, opts.legendEl);
+  return chart;
+}
+
+// Leyenda en HTML con el mismo comportamiento que la de Chart.js (clic para ocultar o mostrar una serie).
+function htmlLegend(chart, host) {
+  host.replaceChildren(...chart.data.datasets.map((ds, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'legend-item';
+    b.setAttribute('aria-pressed', 'true');
+    const sw = document.createElement('span');
+    sw.className = ds.type === 'line' ? 'legend-swatch dot' : 'legend-swatch';
+    sw.style.background = ds.type === 'line' ? ds.borderColor : (Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : ds.backgroundColor);
+    b.append(sw, document.createTextNode(ds.label));
+    b.addEventListener('click', () => {
+      const visible = !chart.isDatasetVisible(i);
+      chart.setDatasetVisibility(i, visible);
+      b.setAttribute('aria-pressed', String(visible));
+      chart.update();
+    });
+    return b;
+  }));
 }
 
 // Altura sugerida para barras horizontales según el número de categorías.

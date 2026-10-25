@@ -1,6 +1,6 @@
 import { SOURCES, FUENTES_COMPLEMENTARIAS } from '../sources.js';
 import { metadata, discover, datasetUrl, resourceUrl } from '../soda.js';
-import { fecha, escapeHtml } from '../format.js';
+import { fecha, escapeHtml, titleCase } from '../format.js';
 import { CRITERIO } from '../freshness.js';
 
 const link = (url, text) => `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(text)}</a>`;
@@ -104,6 +104,30 @@ export default {
             rows: Object.values(d.documentos),
           },
           note: `Transcripción revisada el ${fecha(d.actualizado)}: cada estado de resultados y balance cuadra aritméticamente. Para actualizar, agregue el nuevo año en data/esp-villeta.json con su documento fuente.`,
+        };
+      },
+    },
+    {
+      type: 'table',
+      title: 'Bodega de datos del SUI transcrita (sin API)',
+      subtitle: 'Información comercial por prestador guardada en data/sui-comercial-villeta.json',
+      wide: true,
+      async load() {
+        const res = await fetch('data/sui-comercial-villeta.json', { cache: 'no-cache' });
+        if (!res.ok) return { empty: true };
+        const d = await res.json();
+        return {
+          asOf: false,
+          table: {
+            columns: [
+              { key: 'nombre', label: 'Prestador' },
+              { key: 'servicio', label: 'Servicio', format: v => titleCase(v) },
+              { key: 'periodo', label: 'Periodos en el SUI' },
+            ],
+            rows: d.prestadores.map(p => ({ nombre: p.nombre, servicio: p.servicio, periodo: `${p.desde} a ${p.hasta}` })),
+          },
+          note: `Consulta pública del cubo SUI_COMERCIAL (${d.fuente.filtros}) hecha el ${fecha(`${d.fuente.consultado}T12:00:00`)}; también incluye energía, gas y telefonía del municipio. ${d.calidad.length} advertencias de calidad documentadas en el archivo.`,
+          sourceText: `<span class="source-entity">${escapeHtml(d.fuente.entidad)}</span> — ${link(d.fuente.url, d.fuente.sistema)}`,
         };
       },
     },

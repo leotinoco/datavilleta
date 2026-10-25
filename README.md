@@ -22,7 +22,7 @@ Cuando la fuente no trae fecha propia, se muestra la fecha de publicación en el
 | Resumen | Indicadores clave de todas las secciones con variación frente al periodo anterior |
 | Turismo y hotelería | MinCIT – Registro Nacional de Turismo (`thwd-ivmp`); Supertransporte – pasajeros despachados desde terminales (`eh75-8ah6`) |
 | Economía y empresas | Confecámaras/RUES – Cámara de Comercio de Facatativá (`c82u-588k`, `nb3d-v3n7`); Superfinanciera – captaciones y colocaciones (`u2wk-tfe3`), puntos de atención (`vkbt-desu`); Supersociedades – 10.000 empresas (`6cat-2gcs`); Supersolidaria (`kg2d-yfyg`) |
-| Servicios públicos | Superservicios – RUPS (`4qkq-csdn`), residuos (`d7pt-p5fi`), PQR energía (`myu9-6wb7`); INS – IRCA calidad del agua (`nxt2-39c3`); MinTIC – internet fijo (`n48w-gutb`, `hwrp-3su3`) |
+| Servicios públicos | Superservicios – RUPS (`4qkq-csdn`), residuos (`d7pt-p5fi`), PQR energía (`myu9-6wb7`); INS – IRCA calidad del agua (`nxt2-39c3`); MinTIC – internet fijo (`n48w-gutb`, `hwrp-3su3`). Suscriptores, consumo y facturación por servicio y por prestador (ESP, cuatro acueductos comunitarios, energía, gas) 2003–2026 desde la bodega de datos del SUI, transcritos en `data/sui-comercial-villeta.json` |
 | ESP Villeta | Índice de agua no contabilizada (IANC) 2012–2025 (anual y mensual con volúmenes producidos y facturados), cobertura, recaudo, continuidad, Indicador Único Sectorial, estados financieros 2018–2025, indicadores financieros, resultado por servicio, ejecución presupuestal y hallazgos. Fuentes: PDF oficiales de la empresa (espvilleta.gov.co) y evaluación integral de la Superservicios (agosto 2026), transcritos en `data/esp-villeta.json`; contratos en vivo desde SECOP |
 | Seguridad y convivencia | MinDefensa/Policía – 15 conjuntos de delitos (hurtos, homicidio, lesiones, VIF, delitos sexuales, extorsión, informáticos, ambientales, tránsito, secuestro, abigeato) |
 | Educación y cultura | MEN – estadísticas por municipio (`nudc-7mev`); ICFES – Saber 11 (`kgxf-xxbe`); MinCulturas – beneficiarios (`bq7b-e3sb`) |
@@ -106,6 +106,12 @@ La cita de la fuente, la fecha de actualización, la tabla, el CSV y el enlace a
 ## Datos de la ESP Villeta (sin API)
 
 El IANC y los estados financieros de la Empresa de Servicios Públicos no están en datos.gov.co, y el SUI de la Superservicios no admite consultas automáticas. Por eso se transcribieron de los documentos oficiales a `data/esp-villeta.json`, con el enlace a cada PDF. La transcripción se verificó aritméticamente (cada estado de resultados y balance cuadra) y las cifras 2024–2025 coinciden con las de la Superservicios. Para actualizar, agregue el nuevo año con su documento en `documentos`.
+
+## Datos comerciales del SUI (sin API)
+
+La bodega de datos del SUI (`bi.superservicios.gov.co/o3web`, cubo `SUI_COMERCIAL`) es de consulta pública pero interactiva: no tiene API documentada y bloquea las consultas automáticas. Las cifras de Villeta (filtro *Ubicación geográfica = VILLETA*, periodicidad mensual) se consultaron en el navegador y se guardaron en `data/sui-comercial-villeta.json`: totales anuales desde 2003 y series mensuales desde 2019 para suscriptores y consumo. El archivo lista en `calidad` los problemas encontrados, entre ellos que el SUI duplica el consumo y la facturación de acueducto de la ESP de enero de 2024 a febrero de 2025 (frente al informe de control social de la propia empresa) y que dos acueductos comunitarios reportan suscriptores inverosímiles. Para actualizar, repita la consulta y reemplace las cifras conservando la estructura.
+
+Los estados financieros y el IANC de los acueductos comunitarios no están en fuentes públicas: el SUI público solo trae lo facturado, no el volumen producido.
 
 ## Notas de calidad de datos
 

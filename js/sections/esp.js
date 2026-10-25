@@ -5,6 +5,7 @@ import { num, cop, pct, change, escapeHtml, fecha, toNum, mes, MESES_CORTOS } fr
 import { ofYear, ofMonth, ofDate } from '../freshness.js';
 import { THIS_YEAR } from './helpers.js';
 import { secopBase } from './contratacion.js';
+import { sui, citaSui, meses, prestador, aniosDe } from './sui.js';
 
 let cache = null;
 function datos() {
@@ -29,7 +30,7 @@ export default {
   id: 'esp',
   eyebrow: 'Empresa de Servicios Públicos E.S.P. de Villeta',
   title: 'ESP Villeta: agua, finanzas y desempeño',
-  intro: 'Principal empresa del municipio: presta acueducto, alcantarillado y aseo. Aquí se reúnen su índice de agua no contabilizada (IANC), indicadores de operación, estados financieros 2018–2025 y la evaluación integral publicada por la Superintendencia de Servicios Públicos en agosto de 2026. Las cifras contables provienen de los PDF oficiales de la empresa y de la Superservicios (no hay API abierta con estos datos) y cada tarjeta enlaza el documento original.',
+  intro: 'Principal empresa del municipio: presta acueducto, alcantarillado y aseo. Aquí se reúnen su índice de agua no contabilizada (IANC), indicadores de operación, suscriptores y facturación mes a mes reportados al SUI, estados financieros 2018–2025 y la evaluación integral publicada por la Superintendencia de Servicios Públicos en agosto de 2026. Las cifras contables provienen de los PDF oficiales de la empresa y de la Superservicios (no hay API abierta con estos datos) y cada tarjeta enlaza el documento original.',
   blocks: [
     {
       type: 'kpis',
@@ -203,6 +204,115 @@ export default {
           },
           note: 'El IUS (Res. CRA 906 de 2019) suma ocho dimensiones de 12,5 puntos. La empresa pasó de riesgo medio (75,5) en 2023 a riesgo bajo (90,4) en 2024; la mayor mejora fue en gestión tarifaria y sostenibilidad financiera.',
           sourceText: cita(d, 'sspd2026'),
+        };
+      },
+    },
+
+    { type: 'heading', title: 'Suscriptores, consumo y facturación reportados al SUI', text: 'Información comercial que la empresa carga cada mes al Sistema Único de Información (SUI) de la Superservicios: suscriptores, metros cúbicos facturados, valor facturado, subsidios y contribuciones de cada servicio. Se publica en la bodega de datos del SUI desde 2003.' },
+    {
+      type: 'chart',
+      title: 'Suscriptores por servicio, mes a mes',
+      subtitle: 'Número de suscriptores facturados cada mes',
+      wide: true,
+      async load() {
+        const s = await sui();
+        const serv = SERV.map(([k, n]) => [prestador(s, 2154, k), n]);
+        const n = serv[0][0].mensual.suscriptores.length;
+        const ult = serv[0][0].mensual.suscriptores.at(-1);
+        const ini = serv[0][0].mensual.suscriptores[0];
+        return {
+          labelTitle: 'Mes',
+          asOf: ofMonth(...s.hasta.split('-')),
+          chart: { kind: 'line', timeline: meses(s.mensualDesde, n), labels: meses(s.mensualDesde, n).map(p => `${mes(p.m)} ${p.y}`), series: serv.map(([p, nombre]) => ({ name: nombre, data: p.mensual.suscriptores })) },
+          note: `Acueducto: ${num(ini)} suscriptores en enero de 2019 y ${num(ult)} en ${mes(Number(s.hasta.slice(5)))} de ${s.hasta.slice(0, 4)} (${num(change(ult, ini), 0)} % más). Septiembre de 2020 no tiene reporte. El último periodo de aseo cargado al SUI es abril de 2024, aunque la empresa sigue facturando el servicio (aparece en sus estados financieros de 2025).`,
+          sourceText: citaSui(s),
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'Suscriptores promedio por año, 2003–2026',
+      subtitle: 'Promedio de los meses reportados en cada año',
+      async load() {
+        const s = await sui();
+        const serv = SERV.map(([k, n]) => [prestador(s, 2154, k), n]);
+        const anios = aniosDe(...serv.map(([p]) => p.anual));
+        const ac = serv[0][0].anual;
+        return {
+          labelTitle: 'Año',
+          asOf: ofMonth(...s.hasta.split('-')),
+          chart: { kind: 'line', labels: anios, series: serv.map(([p, nombre]) => ({ name: nombre, data: anios.map(y => p.anual[y]?.suscriptores ?? null) })) },
+          note: `Los suscriptores de acueducto pasaron de ${num(ac['2003'].suscriptores)} en 2003 a ${num(ac['2025'].suscriptores)} en 2025 (${num(change(ac['2025'].suscriptores, ac['2003'].suscriptores), 0)} % más). 2026 promedia enero a septiembre; aseo en 2024 solo tiene enero a abril.`,
+          sourceText: citaSui(s),
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'Agua facturada: SUI frente al informe de la empresa',
+      subtitle: 'Metros cúbicos de acueducto facturados cada mes según cada fuente',
+      wide: true,
+      async load() {
+        const [d, s] = await Promise.all([datos(), sui()]);
+        const arr = prestador(s, 2154, 'acueducto').mensual.consumo;
+        const desde = Number(s.mensualDesde.slice(0, 4));
+        // El SUI registra en el periodo m lo consumido en m−1: se alinea al mes de consumo.
+        const filas = d.ianc.mensual.flatMap(a => a.meses.map(x => ({ y: a.anio, m: x.mes, propio: x.facturado, sui: arr[(a.anio - desde) * 12 + x.mes] ?? null })));
+        const tot = y => { const f = filas.filter(r => r.y === y); return [f.reduce((t, r) => t + (r.propio || 0), 0), f.reduce((t, r) => t + (r.sui || 0), 0)]; };
+        const [p24, s24] = tot(2024);
+        return {
+          labelTitle: 'Mes de consumo',
+          asOf: ofMonth(ultimo(d.ianc.mensual).anio, 12),
+          chart: { kind: 'line', timeline: filas.map(r => ({ y: r.y, m: r.m })), labels: filas.map(r => `${mes(r.m)} ${r.y}`), series: [{ name: 'Informe de control social (empresa)', data: filas.map(r => r.propio) }, { name: 'Reporte al SUI (Superservicios)', data: filas.map(r => r.sui) }] },
+          table: {
+            columns: [
+              { key: 'periodo', label: 'Mes de consumo' },
+              { key: 'propio', label: 'Informe de la empresa (m³)', align: 'right', format: v => num(v) },
+              { key: 'sui', label: 'SUI (m³)', align: 'right', format: v => num(v) },
+              { key: 'dif', label: 'Diferencia', align: 'right', format: v => (v == null ? '—' : `${v > 0 ? '+' : ''}${num(v, 0)} %`) },
+            ],
+            rows: filas.map(r => ({ periodo: `${mes(r.m)} ${r.y}`, propio: r.propio, sui: r.sui, dif: change(r.sui, r.propio) })),
+          },
+          note: `El SUI registra en cada periodo lo consumido el mes anterior; aquí se alinea al mes de consumo. Fuera de los meses duplicados, ambas fuentes coinciden casi mes a mes. En 2024 el SUI suma ${num(s24)} m³ frente a ${num(p24)} m³ del informe de la empresa: los consumos de diciembre de 2023 a noviembre de 2024 y el de enero de 2025 aparecen al doble en el SUI (periodos de enero de 2024 a febrero de 2025), lo que también duplica la facturación y los subsidios reportados en esos meses.`,
+          sourceText: [citaSui(s), ...cita(d, ...d.ianc.mensual.map(a => a.fuente))],
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'Facturación por servicio reportada al SUI',
+      subtitle: 'Valor facturado por año (pesos corrientes)',
+      async load() {
+        const s = await sui();
+        const serv = SERV.map(([k, n]) => [prestador(s, 2154, k), n]);
+        const anios = aniosDe(...serv.map(([p]) => p.anual));
+        const avisos = { 2024: 'Acueducto 2024: posible doble cargue en el SUI · aseo solo enero a abril', 2026: 'Enero a septiembre' };
+        return {
+          labelTitle: 'Año',
+          asOf: ofMonth(...s.hasta.split('-')),
+          chart: { kind: 'line', format: 'cop', labels: anios, series: serv.map(([p, nombre]) => ({ name: nombre, data: anios.map(y => p.anual[y]?.facturacion ?? null) })), footer: i => avisos[anios[i]] || '' },
+          note: 'Es el valor facturado a los usuarios, no el ingreso contable. El salto de acueducto en 2024 viene del doble cargue descrito arriba. La facturación de aseo de 2007–2009 es atípica frente a los años vecinos. Para ingresos y costos contables por servicio vea los estados financieros más abajo.',
+          sourceText: citaSui(s),
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'Subsidios y contribuciones: acueducto y alcantarillado',
+      subtitle: 'Subsidios a estratos 1 a 3 frente a contribuciones de estratos 5, 6 y usuarios comerciales',
+      async load() {
+        const s = await sui();
+        const ps = ['acueducto', 'alcantarillado'].map(k => prestador(s, 2154, k));
+        const anios = aniosDe(...ps.map(p => p.anual)).filter(y => y >= '2005');
+        const suma = (y, k) => ps.reduce((t, p) => t + (p.anual[y]?.[k] || 0), 0);
+        const ref = '2025';
+        const [sub, con] = [suma(ref, 'subsidios'), suma(ref, 'contribuciones')];
+        return {
+          labelTitle: 'Año',
+          asOf: ofMonth(...s.hasta.split('-')),
+          chart: { kind: 'bar', format: 'cop', labels: anios, series: [{ name: 'Subsidios otorgados', data: anios.map(y => suma(y, 'subsidios')) }, { name: 'Contribuciones recibidas', data: anios.map(y => suma(y, 'contribuciones')) }], partialLast: true, footer: i => (anios[i] === '2024' ? 'Posible doble cargue de acueducto en el SUI' : anios[i] === '2026' ? 'Enero a septiembre' : '') },
+          note: `En ${ref} los subsidios sumaron ${cop(sub)} y las contribuciones ${cop(con)}: las contribuciones cubren el ${num((con / sub) * 100, 0)} % y la diferencia (${cop(sub - con)}) debe salir del Fondo de Solidaridad y Redistribución de Ingresos del municipio. Se excluye aseo porque su reporte al SUI termina en abril de 2024.`,
+          sourceText: citaSui(s),
         };
       },
     },

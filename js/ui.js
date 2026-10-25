@@ -210,17 +210,24 @@ export function renderBlock(block, grid, filters) {
       box.append(canvas);
       // Series mensuales largas: cada mes conserva su etiqueta; si no caben, el gráfico se desplaza en horizontal
       // y arranca mostrando los periodos más recientes.
+      // El eje Y y la leyenda quedan fijos fuera de la parte que se desplaza.
       const need = spec.timeline ? spec.timeline.length * 34 + 70 : 0;
       let scroller = null;
+      const opts = {};
       if (need > body.clientWidth) {
         scroller = el('div', 'chart-scroll');
+        const inner = el('div', 'chart-scroll-inner');
+        opts.axisCanvas = el('canvas', 'chart-axis');
+        opts.axisCanvas.setAttribute('aria-hidden', 'true');
+        opts.legendEl = el('div', 'chart-legend');
         box.style.width = `${need}px`;
-        scroller.append(box);
-        body.append(scroller);
+        inner.append(opts.axisCanvas, box);
+        scroller.append(inner);
+        body.append(opts.legendEl, scroller);
       } else {
         body.append(box);
       }
-      charts.add(drawChart(canvas, spec));
+      charts.add(drawChart(canvas, spec, opts));
       if (scroller) {
         scroller.scrollLeft = scroller.scrollWidth;
         body.append(el('p', 'note scroll-hint', '↔ Desplace el gráfico horizontalmente para ver todos los meses.'));
@@ -258,7 +265,7 @@ export function renderBlock(block, grid, filters) {
         const tb = body.querySelector('.chart-table');
         const show = tb.hidden;
         tb.hidden = !show;
-        body.querySelectorAll('.chart-scroll, .chart-box, .scroll-hint').forEach(n => { n.hidden = show; });
+        body.querySelectorAll('.chart-scroll, .chart-box, .chart-legend, .scroll-hint').forEach(n => { n.hidden = show; });
         tbtn.textContent = show ? 'Ver gráfico' : 'Ver tabla';
         tbtn.setAttribute('aria-pressed', String(show));
       };
