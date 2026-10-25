@@ -7,7 +7,7 @@ const nivelIrca = v => (v == null ? '—' : v <= 5 ? 'Sin riesgo' : v <= 14 ? 'R
 export default {
   id: 'servicios',
   title: 'Servicios públicos',
-  intro: 'Prestadores de acueducto, alcantarillado y aseo inscritos ante la Superservicios, calidad del agua (IRCA), residuos sólidos, suscriptores por servicio y acueductos comunitarios (SUI), energía, gas, reclamaciones y conectividad a internet fijo. El detalle de la Empresa de Servicios Públicos de Villeta (agua no contabilizada, finanzas) está en la sección <a href="#/esp">ESP Villeta</a>.',
+  intro: 'Prestadores de acueducto, alcantarillado y aseo inscritos ante la Superservicios, calidad del agua (IRCA), residuos sólidos, suscriptores por servicio y acueductos comunitarios (SUI), energía, gas, reclamaciones y conectividad a internet fijo. El detalle de la Empresa de Servicios Públicos de Villeta (agua no contabilizada, finanzas) está en la sección <a href="esp/">ESP Villeta</a>.',
   blocks: [
     { type: 'heading', title: 'Acueducto, alcantarillado y aseo' },
     {

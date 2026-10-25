@@ -96,6 +96,7 @@ export default {
   intro: 'Contratos firmados por entidades públicas con sede en Villeta (SECOP I y II), recursos de regalías y la Medición de Desempeño Municipal del DNP. Use el filtro para ver una entidad en particular.',
   filters: [{ id: 'entidad', label: 'Entidad contratante', default: 'todas', options: ENTIDADES.map(({ value, label }) => ({ value, label })) }],
   blocks: [
+    { type: 'heading', title: 'Contratos públicos (SECOP)', text: 'Contratos firmados por las entidades con sede en Villeta, según SECOP I y II.' },
     {
       type: 'kpis',
       title: 'Contratación del año corrido',

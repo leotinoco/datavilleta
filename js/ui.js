@@ -6,6 +6,7 @@ import { query, metadata, datasetUrl, resourceUrl } from './soda.js';
 import { drawChart, hbarHeight } from './charts.js';
 import { getFormat, escapeHtml, fecha, signedPct } from './format.js';
 import { describe, ofYear, ofDate, CRITERIO } from './freshness.js';
+import { slug } from './slug.js';
 
 const charts = new Set();
 
@@ -119,6 +120,8 @@ function fillKpi(tile, k) {
 export function renderBlock(block, grid, filters) {
   if (block.type === 'heading') {
     const h = el('div', 'block-heading');
+    h.id = `h-${slug(block.title)}`;
+    h.dataset.sub = slug(block.title);
     h.innerHTML = `<h2>${escapeHtml(block.title)}</h2>${block.text ? `<p>${block.text}</p>` : ''}`;
     grid.append(h);
     return;
@@ -301,6 +304,7 @@ export function renderBlock(block, grid, filters) {
 export function renderSection(section, root, { filters, onFilterChange }) {
   destroyCharts();
   root.innerHTML = '';
+  root.classList.toggle('has-filters', !!section.filters?.length);
   const head = el('header', 'section-head');
   head.innerHTML = `<p class="eyebrow">${escapeHtml(section.eyebrow || 'Villeta, Cundinamarca')}</p><h1>${escapeHtml(section.title)}</h1>${section.intro ? `<p class="lead">${section.intro}</p>` : ''}`;
   root.append(head);

@@ -1,0 +1,65 @@
+<!doctype html>
+<!-- Fuente de og-image.png (1200×630). Regenerar con: node scripts/og/render.mjs -->
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<title>Datavilleta – imagen para redes</title>
+<style>
+  :root { --bg: #121211; --surface: #1a1a19; --border: #2e2e2b; --text: #f2f1ec; --text2: #b9b7ae; --muted: #8a887f; --blue: #3987e5; --orange: #d95926; --green: #199e70; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; }
+  .frame { position: absolute; inset: 0; padding: 60px 72px 52px; display: grid; grid-template-columns: 1fr 470px; gap: 56px; }
+  .brand { display: flex; align-items: center; gap: 22px; }
+  .mark { width: 84px; height: 84px; border-radius: 20px; background: var(--blue); display: flex; align-items: flex-end; justify-content: center; gap: 9px; padding-bottom: 20px; }
+  .mark i { display: block; width: 13px; border-radius: 4px; background: #fff; }
+  h1 { font-size: 76px; font-weight: 700; letter-spacing: -1.5px; line-height: 1; }
+  .sub { margin-top: 26px; font-size: 34px; line-height: 1.25; color: var(--text); font-weight: 600; }
+  .lead { margin-top: 14px; font-size: 24px; line-height: 1.4; color: var(--text2); }
+  .chips { margin-top: 30px; display: flex; flex-wrap: wrap; gap: 10px; }
+  .chips span { font-size: 19px; color: var(--text2); border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 15px; }
+  .left { display: flex; flex-direction: column; }
+  .foot { margin-top: auto; font-size: 20px; line-height: 1.45; color: var(--muted); }
+  .foot strong { color: var(--text2); font-weight: 600; }
+  .card { align-self: center; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 30px 30px 24px; }
+  .card h2 { font-size: 21px; font-weight: 600; color: var(--text); }
+  .card p { font-size: 16px; color: var(--muted); margin-top: 4px; }
+  .bars { margin-top: 26px; height: 250px; display: flex; align-items: flex-end; gap: 6px; border-bottom: 2px solid var(--border); }
+  .bars i { flex: 1; background: var(--blue); border-radius: 4px 4px 0 0; }
+  .bars i.last { background: var(--orange); }
+  .axis { display: flex; justify-content: space-between; margin-top: 10px; font-size: 16px; color: var(--muted); }
+  .big { margin-top: 18px; display: flex; align-items: baseline; gap: 12px; }
+  .big b { font-size: 44px; font-weight: 700; }
+  .big span { font-size: 17px; color: var(--text2); line-height: 1.3; }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="left">
+      <div class="brand">
+        <div class="mark" aria-hidden="true"><i style="height:22px"></i><i style="height:36px"></i><i style="height:48px"></i></div>
+        <h1>Datavilleta</h1>
+      </div>
+      <p class="sub">Villeta, Cundinamarca en datos públicos</p>
+      <p class="lead">Cifras oficiales con su fuente y su fecha, para seguir año a año cómo cambia el municipio.</p>
+      <div class="chips">
+        <span>Turismo</span><span>Economía</span><span>Servicios públicos</span><span>ESP Villeta</span><span>Seguridad</span><span>Educación</span><span>Salud</span><span>Agro</span><span>Contratación</span>
+      </div>
+      <p class="foot"><strong>leotinoco.github.io/datavilleta</strong><br>datos.gov.co · MinCIT · Superservicios · SECOP y más</p>
+    </div>
+    <div class="card">
+      <h2>Prestadores turísticos con RNT activo</h2>
+      <p>Villeta, 2005–2026 · MinCIT</p>
+      <div class="bars" id="bars"></div>
+      <div class="axis"><span>2005</span><span>2015</span><span>2026</span></div>
+      <div class="big"><b>579</b><span>prestadores en 2026,<br>frente a 10 en 2005</span></div>
+    </div>
+  </div>
+  <script>
+    // Serie real del RNT (data/rnt-historico-villeta.json), 2005–2026.
+    const v = [10, 16, 23, 22, 32, 32, 31, 40, 55, 74, 71, 81, 102, 121, 162, 149, 237, 337, 423, 485, 558, 579];
+    const max = Math.max(...v);
+    document.getElementById('bars').innerHTML = v.map((x, i) => `<i class="${i === v.length - 1 ? 'last' : ''}" style="height:${(x / max) * 100}%"></i>`).join('');
+  </script>
+</body>
+</html>

@@ -73,7 +73,10 @@ node scripts/snapshot.mjs
 ## Estructura
 
 ```
-index.html            Página única (menú lateral + secciones por #/ruta)
+index.html            Página única (menú lateral + secciones en rutas limpias: /turismo/, /turismo/<subsección>/)
+<seccion>/index.html  Copias de index.html generadas por scripts/rutas.mjs (una por sección y subsección)
+404.html, sitemap.xml Respaldo para rutas no generadas y mapa del sitio (también generados)
+og-image.png          Miniatura para redes sociales (fuente: scripts/og/og-image.html)
 css/styles.css        Estilos y paleta (modo claro/oscuro)
 js/config.js          Municipio (nombre, códigos DANE, cámara de comercio)
 js/sources.js         Catálogo de fuentes oficiales
@@ -82,6 +85,19 @@ js/charts.js          Gráficos (Chart.js) con el estilo del sitio
 js/ui.js              Tarjetas: gráfico/tabla, cita de fuente, CSV, enlaces API
 js/sections/*.js      Una sección por tema; cada bloque declara su consulta SoQL
 scripts/snapshot.mjs  Copia mensual de registros sin histórico
+scripts/rutas.mjs     Genera las páginas de cada ruta, 404.html y sitemap.xml
+scripts/og/render.mjs Genera og-image.png con Edge o Chrome sin interfaz
+```
+
+### Rutas y vista previa en redes
+
+Las secciones usan URLs sin `#` (`/turismo/`, `/esp/indicadores-financieros/`) y cada encabezado de una sección es una subsección enlazada desde el menú. GitHub Pages no sabe resolver rutas de una aplicación de una sola página, así que `scripts/rutas.mjs` copia `index.html` en una carpeta por ruta con su `<base>`, título, descripción y metadatos Open Graph propios. Los enlaces viejos con `#/seccion` se redirigen solos a la ruta nueva.
+
+Después de cambiar `index.html`, el menú o los encabezados de una sección, regenere las rutas (y la imagen si cambió su diseño):
+
+```bash
+node scripts/rutas.mjs
+node scripts/og/render.mjs
 ```
 
 ### Agregar un indicador

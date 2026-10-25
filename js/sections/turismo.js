@@ -48,6 +48,7 @@ export default {
   title: 'Turismo y hotelería',
   intro: 'Oferta turística formal inscrita en el Registro Nacional de Turismo (capacidad de alojamiento, tipo de prestador y empleo reportado) y llegada de pasajeros a Villeta desde las terminales de transporte vigiladas por la Superintendencia de Transporte.',
   blocks: [
+    { type: 'heading', title: 'Oferta turística vigente', text: 'Prestadores con Registro Nacional de Turismo activo en el último corte publicado en datos.gov.co: tipos, capacidad de alojamiento y establecimientos.' },
     {
       type: 'kpis',
       title: 'Oferta turística registrada (RNT vigente)',

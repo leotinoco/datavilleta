@@ -57,6 +57,7 @@ export default {
     { id: 'delito', label: 'Delito para el comparativo mensual', default: 'hurto_personas', options: DELITOS.map(d => ({ value: d.key, label: d.nombre })) },
   ],
   blocks: [
+    { type: 'heading', title: 'Año corrido', text: 'Delitos registrados desde el 1 de enero hasta el último día publicado, frente al mismo periodo del año anterior.' },
     {
       type: 'table',
       title: 'Comparativo año corrido',
