@@ -214,6 +214,15 @@ main { padding: 24px 24px 48px; min-width: 0; outline: none; }
 }
 .card-head { padding: 16px 18px 4px; display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 6px 12px; }
 .card-titles { flex: 1 1 260px; min-width: 0; }
+/* Cobertura distinta a Villeta (regional, departamental o comparativa): icono + texto, nunca solo color */
+.scope-tag {
+  display: flex; align-items: flex-start; gap: 7px; margin: 8px 0 2px; padding: 6px 10px;
+  font-size: 12.5px; line-height: 1.4; color: var(--text-primary);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); border-radius: 8px;
+}
+.scope-tag svg { width: 15px; height: 15px; flex: none; margin-top: 1px; fill: none; stroke: var(--warn); stroke-width: 1.8; }
+.scope-tag strong { font-weight: 650; }
 .asof-slot:empty { display: none; }
 
 /* Vigencia del dato: texto + icono + color (nunca solo color) */

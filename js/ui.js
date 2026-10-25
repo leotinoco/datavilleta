@@ -128,7 +128,9 @@ export function renderBlock(block, grid, filters) {
     return;
   }
   const card = el('article', `card${block.wide ? ' wide' : ''}${block.type === 'kpis' ? ' card-kpis' : ''}`);
-  card.innerHTML = `<header class="card-head"><div class="card-titles"><h3>${escapeHtml(block.title)}</h3>${block.subtitle ? `<p class="card-sub">${escapeHtml(block.subtitle)}</p>` : ''}</div><div class="asof-slot"></div></header>`;
+  // block.scope: { nivel, texto } cuando la cifra no es exclusiva de Villeta (región, departamento o comparación).
+  const scope = block.scope ? `<p class="scope-tag"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><span><strong>${escapeHtml(block.scope.nivel)}:</strong> ${escapeHtml(block.scope.texto)}</span></p>` : '';
+  card.innerHTML = `<header class="card-head"><div class="card-titles"><h3>${escapeHtml(block.title)}</h3>${block.subtitle ? `<p class="card-sub">${escapeHtml(block.subtitle)}</p>` : ''}${scope}</div><div class="asof-slot"></div></header>`;
   const asofSlot = card.querySelector('.asof-slot');
   const body = el('div', 'card-body');
   body.innerHTML = '<div class="loading"><span class="spinner" aria-hidden="true"></span> Consultando la fuente oficial…</div>';

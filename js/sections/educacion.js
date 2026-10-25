@@ -89,6 +89,7 @@ export default {
     {
       type: 'chart',
       title: 'Puntaje global promedio: Villeta frente a Cundinamarca',
+      scope: { nivel: 'Comparación departamental', texto: 'la línea de Cundinamarca promedia a todos los evaluados del departamento; la de Villeta, solo a los de colegios del municipio.' },
       subtitle: 'Promedio anual ponderado por número de evaluados',
       wide: true,
       async load({ q, M }) {

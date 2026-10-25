@@ -1067,5 +1067,53 @@
         ]
       }
     ]
+  },
+  "partidasNotas": {
+    "_nota": "Partidas tomadas de las revelaciones (notas) a los estados financieros de cada año para EBITDA, cobertura de intereses y deuda neta. Depreciación = suma de 'Depreciación aplicada' de PPE muebles e inmuebles (2020: variación de la depreciación acumulada). La empresa no tiene préstamos por pagar (Nota 20/21) en 2020–2025.",
+    "depreciacion": {
+      "2020": 383331090,
+      "2021": 494866737,
+      "2022": 375108955,
+      "2023": 469812502,
+      "2024": 512744158,
+      "2025": 544886529
+    },
+    "amortizacion": {
+      "2020": 0,
+      "2021": 14544249,
+      "2022": 14544249,
+      "2023": 14544249,
+      "2024": 8906250,
+      "2025": 5937500
+    },
+    "gastosFinancieros": {
+      "2020": 14251031,
+      "2021": 12179952,
+      "2022": 6877603,
+      "2023": 12170829,
+      "2024": 12461422,
+      "2025": 14759788
+    },
+    "comisiones": {
+      "2022": 0,
+      "2023": 3603158,
+      "2024": 21893721,
+      "2025": 24122627
+    },
+    "prestamosPorPagar": {
+      "2020": 0,
+      "2021": 0,
+      "2022": 0,
+      "2023": 0,
+      "2024": 0,
+      "2025": 0
+    },
+    "cuentasPorPagarProveedores": {
+      "2021": 56925870,
+      "2022": 56961437,
+      "2023": 152886128,
+      "2024": 132536556,
+      "2025": 534041078
+    }
   }
 }

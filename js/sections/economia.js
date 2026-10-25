@@ -28,6 +28,8 @@ const ORG_CORTO = [
 ];
 const orgCorta = s => ORG_CORTO.find(([re]) => re.test(String(s).toUpperCase()))?.[1] || titleCase(s);
 
+const RUES_SCOPE = { nivel: 'Dato regional, no solo Villeta', texto: 'cubre toda la jurisdicción de la Cámara de Comercio de Facatativá (Villeta y otros municipios de Sabana Occidente, Gualivá y Tequendama). El registro abierto no trae el municipio de cada empresa.' };
+
 export default {
   id: 'economia',
   title: 'Economía, empresas y sistema financiero',
@@ -38,6 +40,7 @@ export default {
       type: 'chart',
       title: 'Matrículas nuevas y cancelaciones por año',
       subtitle: 'Personas naturales, sociedades y ESAL – jurisdicción CC Facatativá',
+      scope: RUES_SCOPE,
       wide: true,
       async load({ q, M }) {
         const where = f => `codigo_camara='${M.codigoCamaraRues}' and ${f} >= '2010'`;
@@ -61,6 +64,7 @@ export default {
       type: 'chart',
       title: 'Nuevos establecimientos de comercio por año',
       subtitle: 'Establecimientos, agencias y sucursales matriculados – jurisdicción CC Facatativá',
+      scope: RUES_SCOPE,
       async load({ q, M }) {
         const rows = await q('rues_estab', { $select: 'substring(fecha_matricula,1,4) as y, count(*) as n', $where: `codigo_camara='${M.codigoCamaraRues}' and fecha_matricula >= '2010'`, $group: 'y', $order: 'y' });
         const s = annual(rows, { from: 2010 });
@@ -77,6 +81,7 @@ export default {
       type: 'chart',
       title: 'Registros activos por actividad económica',
       subtitle: 'Sección CIIU de la actividad principal – jurisdicción CC Facatativá',
+      scope: RUES_SCOPE,
       async load({ q, M }) {
         const rows = await q('rues', { $select: 'cod_ciiu_act_econ_pri as c, count(*) as n', $where: `codigo_camara='${M.codigoCamaraRues}' and estado_matricula='ACTIVA'`, $group: 'c', $limit: 5000 });
         const m = new Map();
@@ -93,6 +98,7 @@ export default {
       type: 'chart',
       title: 'Registros activos por organización jurídica',
       subtitle: 'Jurisdicción CC Facatativá',
+      scope: RUES_SCOPE,
       async load({ q, M }) {
         const rows = await q('rues', { $select: 'organizacion_juridica as o, count(*) as n', $where: `codigo_camara='${M.codigoCamaraRues}' and estado_matricula='ACTIVA'`, $group: 'o' });
         const m = new Map();
