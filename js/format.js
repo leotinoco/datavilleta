@@ -35,6 +35,13 @@ export const change = (cur, prev) => (cur == null || prev == null || prev === 0 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 export const mes = m => MESES[m - 1];
 export const MESES_CORTOS = MESES;
+export const MESES_LARGOS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+// Periodo {y, m} a partir de una fecha ISO o de 'YYYY-MM'.
+export function periodo(v) {
+  const s = String(v);
+  const m = /^(\d{4})-(\d{2})/.exec(s);
+  return m ? { y: Number(m[1]), m: Number(m[2]) } : null;
+}
 
 export function fecha(v) {
   if (!v) return '—';

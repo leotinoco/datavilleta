@@ -104,7 +104,7 @@ export default {
           labelTitle: 'Mes',
           asOf: ofDate(cut.date),
           chart: {
-            kind: 'line', labels: MESES_CORTOS,
+            kind: 'line', months12: true, labels: MESES_CORTOS,
             series: years.map(y => ({
               name: `${y}`,
               data: MESES_CORTOS.map((_, i) => (y === cut.y && i + 1 > cut.m ? null : total(rows.filter(r => Number(r.m) === i + 1), y))),

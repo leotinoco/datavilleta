@@ -1,4 +1,4 @@
-import { num, toNum, change, cop, mes, fecha, titleCase } from '../format.js';
+import { num, toNum, change, cop, mes, fecha, titleCase, periodo } from '../format.js';
 import { annual, THIS_YEAR, topN, corteFecha } from './helpers.js';
 import { ofYear, ofMonth, ofQuarter } from '../freshness.js';
 
@@ -149,7 +149,7 @@ export default {
           labelTitle: 'Corte',
           asOf: trimestre(rows.at(-1).f),
           chart: {
-            kind: 'line', format: 'cop', labels,
+            kind: 'line', format: 'cop', labels, timeline: rows.map(r => periodo(r.f)),
             series: [
               { name: 'Cartera de créditos', data: rows.map(r => toNum(r.cart)) },
               { name: 'Depósitos (ahorro + CDT + corriente)', data: rows.map(r => toNum(r.aho) + toNum(r.cdt) + toNum(r.cte)) },
@@ -170,7 +170,7 @@ export default {
         return {
           labelTitle: 'Corte',
           asOf: ofMonth(ult.getFullYear(), ult.getMonth() + 1),
-          chart: { kind: 'line', labels: rows.map(r => { const d = new Date(r.f); return `${mes(d.getMonth() + 1)} ${d.getFullYear()}`; }), series: [{ name: 'Puntos de atención', data: rows.map(r => toNum(r.n)) }] },
+          chart: { kind: 'line', timeline: rows.map(r => periodo(r.f)), labels: rows.map(r => { const d = new Date(r.f); return `${mes(d.getMonth() + 1)} ${d.getFullYear()}`; }), series: [{ name: 'Puntos de atención', data: rows.map(r => toNum(r.n)) }] },
         };
       },
     },

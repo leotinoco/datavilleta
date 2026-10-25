@@ -128,7 +128,7 @@ export default {
         return {
           labelTitle: 'Trimestre',
           asOf: ofQuarter(ya, tr),
-          chart: { kind: 'line', labels: keys, series: [{ name: 'Accesos fijos', data: keys.map(k => m.get(k)) }], yoy: false },
+          chart: { kind: 'line', labels: keys, timeline: keys.map(k => { const [y, t] = k.split('-T'); return { y: Number(y), q: Number(t) }; }), series: [{ name: 'Accesos fijos', data: keys.map(k => m.get(k)) }] },
           note: 'Se combinan dos conjuntos de MinTIC: el histórico (2017–2023 T3) y el vigente (desde 2023 T4). El primer trimestre de 2017 está incompleto en la fuente.',
         };
       },

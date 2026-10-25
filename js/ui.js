@@ -208,8 +208,23 @@ export function renderBlock(block, grid, filters) {
       canvas.setAttribute('role', 'img');
       canvas.setAttribute('aria-label', `${block.title}. Use el botón Tabla para ver los valores.`);
       box.append(canvas);
-      body.append(box);
+      // Series mensuales largas: cada mes conserva su etiqueta; si no caben, el gráfico se desplaza en horizontal
+      // y arranca mostrando los periodos más recientes.
+      const need = spec.timeline ? spec.timeline.length * 34 + 70 : 0;
+      let scroller = null;
+      if (need > body.clientWidth) {
+        scroller = el('div', 'chart-scroll');
+        box.style.width = `${need}px`;
+        scroller.append(box);
+        body.append(scroller);
+      } else {
+        body.append(box);
+      }
       charts.add(drawChart(canvas, spec));
+      if (scroller) {
+        scroller.scrollLeft = scroller.scrollWidth;
+        body.append(el('p', 'note scroll-hint', '↔ Desplace el gráfico horizontalmente para ver todos los meses.'));
+      }
       table ||= tableFromChart(spec, res.labelTitle);
       const tableBox = renderTable(table, { maxHeight: 360 });
       tableBox.hidden = true;
@@ -241,10 +256,9 @@ export function renderBlock(block, grid, filters) {
       tbtn.setAttribute('aria-pressed', 'false');
       tbtn.onclick = () => {
         const tb = body.querySelector('.chart-table');
-        const box = body.querySelector('.chart-box');
         const show = tb.hidden;
         tb.hidden = !show;
-        box.hidden = show;
+        body.querySelectorAll('.chart-scroll, .chart-box, .scroll-hint').forEach(n => { n.hidden = show; });
         tbtn.textContent = show ? 'Ver gráfico' : 'Ver tabla';
         tbtn.setAttribute('aria-pressed', String(show));
       };

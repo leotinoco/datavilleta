@@ -112,7 +112,7 @@ export default {
         return {
           labelTitle: 'Mes',
           asOf: ofMonth(ultimo(m).anio, 12),
-          chart: { kind: 'line', format: 'pct', beginAtZero: false, labels: MESES_CORTOS, series: m.map(a => ({ name: String(a.anio), data: a.meses.map(x => x.ianc) })) },
+          chart: { kind: 'line', format: 'pct', beginAtZero: false, months12: true, labels: MESES_CORTOS, series: m.map(a => ({ name: String(a.anio), data: a.meses.map(x => x.ianc) })) },
           note: `Mes con mayor pérdida: ${mes(peor.mes)} ${peor.anio} (${pct(peor.ianc, 2)}); con menor: ${mes(mejor.mes)} ${mejor.anio} (${pct(mejor.ianc, 2)}). Marzo de 2024 se publicó sin volumen producido.`,
           sourceText: cita(d, ...m.map(a => a.fuente)),
         };
@@ -134,7 +134,7 @@ export default {
         return {
           labelTitle: 'Mes',
           asOf: ofMonth(ultimo(d.ianc.mensual).anio, 12),
-          chart: { kind: 'line', labels: meses.map(x => `${mes(x.mes)} ${x.anio}`), series: [{ name: 'Producida (m³)', data: meses.map(x => x.producido) }, { name: 'Facturada (m³)', data: meses.map(x => x.facturado) }] },
+          chart: { kind: 'line', timeline: meses.map(x => ({ y: x.anio, m: x.mes })), labels: meses.map(x => `${mes(x.mes)} ${x.anio}`), series: [{ name: 'Producida (m³)', data: meses.map(x => x.producido) }, { name: 'Facturada (m³)', data: meses.map(x => x.facturado) }] },
           note: `${totales.join('. ')}.`,
           sourceText: cita(d, ...d.ianc.mensual.map(a => a.fuente)),
         };

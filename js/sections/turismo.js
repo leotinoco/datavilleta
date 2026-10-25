@@ -1,4 +1,4 @@
-import { num, toNum, change, mes, MESES_CORTOS, titleCase } from '../format.js';
+import { num, toNum, change, mes, MESES_CORTOS, titleCase, periodo } from '../format.js';
 import { THIS_YEAR, corteRnt, corteFecha, ytdWhere, ytdLabel } from './helpers.js';
 import { ofMonth, mesNumero } from '../freshness.js';
 
@@ -112,7 +112,7 @@ export default {
         return {
           labelTitle: 'Mes',
           asOf,
-          chart: { kind: 'line', labels: snaps.map(s => s.mes), series: [{ name: 'Prestadores activos', data: snaps.map(s => s.rnt.prestadores) }, { name: 'Camas', data: snaps.map(s => s.rnt.camas) }] },
+          chart: { kind: 'line', labels: snaps.map(s => s.mes), timeline: snaps.map(s => periodo(s.mes)), series: [{ name: 'Prestadores activos', data: snaps.map(s => s.rnt.prestadores) }, { name: 'Camas', data: snaps.map(s => s.rnt.camas) }] },
         };
       },
     },
@@ -157,7 +157,7 @@ export default {
         return {
           labelTitle: 'Mes',
           asOf: c,
-          chart: { kind: 'line', labels: MESES_CORTOS, series: years.map(([y, arr]) => ({ name: y, data: arr })) },
+          chart: { kind: 'line', months12: true, labels: MESES_CORTOS, series: years.map(([y, arr]) => ({ name: y, data: arr })) },
           note: c && c.d < 28 ? `El último mes publicado (${mes(c.m)} ${c.y}) está incompleto: llega hasta el día ${c.d}.` : undefined,
         };
       },

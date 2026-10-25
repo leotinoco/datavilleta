@@ -1,6 +1,6 @@
 // Envoltorio de Chart.js con las especificaciones visuales del sitio (barras finas con extremo
 // redondeado, líneas de 2 px, grilla tenue, leyenda solo con 2+ series, tooltip con variación).
-import { getFormat, signedPct, change, compact } from './format.js';
+import { getFormat, signedPct, change, compact, MESES_CORTOS, MESES_LARGOS } from './format.js';
 
 const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
@@ -45,6 +45,16 @@ export function drawChart(canvas, spec) {
   const stacked = spec.kind === 'stacked' || spec.kind === 'hstacked';
   const isLine = spec.kind === 'line';
   const n = spec.labels.length;
+  // spec.timeline: [{y, m}] o [{y, q}] paralelo a labels (serie mensual/trimestral continua).
+  // spec.months12: las etiquetas son los 12 meses y cada serie es un año (comparativo).
+  const timeAxis = !horizontal && !!(spec.timeline || spec.months12);
+  const isYearStart = i => !!spec.timeline && i > 0 && (spec.timeline[i]?.m === 1 || spec.timeline[i]?.q === 1);
+  const periodName = i => {
+    if (spec.months12) return MESES_LARGOS[i];
+    const p = spec.timeline?.[i];
+    if (!p) return spec.labels[i];
+    return p.q ? `T${p.q} ${p.y} (${MESES_CORTOS[p.q * 3 - 3]}–${MESES_CORTOS[p.q * 3 - 1]})` : `${MESES_LARGOS[p.m - 1]} ${p.y}`;
+  };
   const lastSeries = spec.series.length - 1;
 
   const datasets = spec.series.map((s, i) => {
@@ -152,17 +162,27 @@ export function drawChart(canvas, spec) {
               if (spec.partialLast && items[0]?.dataIndex === n - 1) return 'Período en curso: datos parciales';
               return spec.footer ? spec.footer(items[0]?.dataIndex) : '';
             },
+            ...(timeAxis ? { title: items => periodName(items[0]?.dataIndex) } : {}),
           },
         },
       },
       scales: {
         [catAxis]: {
           stacked,
-          grid: { display: false },
+          // Eje de tiempo mensual/trimestral: una línea guía vertical por periodo y una más marcada al iniciar cada año.
+          grid: timeAxis
+            ? { display: true, drawTicks: true, tickLength: 4, lineWidth: 1, color: c => (isYearStart(c.index) ? P.axis : P.grid) }
+            : { display: false },
           border: { color: P.axis },
           ticks: {
-            color: P.muted, font: FONT, maxRotation: 0, autoSkip: !horizontal, autoSkipPadding: 10,
-            callback(value) {
+            color: P.muted, font: timeAxis ? { ...FONT, size: 11 } : FONT, maxRotation: 0,
+            autoSkip: !horizontal && !timeAxis, autoSkipPadding: 10,
+            callback(value, index) {
+              if (spec.months12) return MESES_CORTOS[index];
+              if (spec.timeline) {
+                const p = spec.timeline[index];
+                return p ? [p.q ? `T${p.q}` : MESES_CORTOS[p.m - 1], String(p.y).slice(-2)] : '';
+              }
               const label = String(this.getLabelForValue(value));
               const max = this.chart.width < 520 ? 18 : 34;
               return horizontal && label.length > max ? `${label.slice(0, max - 1)}…` : label;

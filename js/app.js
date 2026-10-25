@@ -57,7 +57,25 @@ function render() {
   });
 }
 
-nav.innerHTML = NAV.map(n => `<li><a href="#/${n.id}" data-id="${n.id}">${n.label}</a></li>`).join('');
+nav.innerHTML = NAV.map(n => `<li><a href="#/${n.id}" data-id="${n.id}" title="${n.label}"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true">${n.icon}</svg><span class="nav-label">${n.label}</span></a></li>`).join('');
+
+// Menú contraíble en escritorio (solo íconos); la preferencia se recuerda en el navegador.
+const collapseBtn = document.getElementById('nav-collapse');
+function setCollapsed(c) {
+  document.body.classList.toggle('nav-collapsed', c);
+  collapseBtn.setAttribute('aria-expanded', String(!c));
+  collapseBtn.title = c ? 'Expandir menú' : 'Contraer menú';
+}
+let collapsed = false;
+try { collapsed = localStorage.getItem('dv:nav') === 'collapsed'; } catch { /* sin almacenamiento */ }
+setCollapsed(collapsed);
+collapseBtn.addEventListener('click', () => {
+  const c = !document.body.classList.contains('nav-collapsed');
+  setCollapsed(c);
+  try { localStorage.setItem('dv:nav', c ? 'collapsed' : 'expanded'); } catch { /* sin almacenamiento */ }
+  // Los gráficos se ajustan al nuevo ancho al terminar la transición.
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 220);
+});
 nav.addEventListener('click', e => {
   if (e.target.closest('a')) {
     document.body.classList.remove('nav-open');
@@ -82,25 +100,23 @@ document.getElementById('refresh').addEventListener('click', () => {
   render();
 });
 
-// Tema claro/oscuro: respeta el sistema y permite forzarlo; los gráficos se redibujan con la nueva paleta.
-const themeBtn = document.getElementById('theme');
+// Tema: oscuro por defecto; el interruptor guarda la preferencia y redibuja los gráficos con la nueva paleta.
+const themeSwitch = document.getElementById('theme');
 function applyTheme(t) {
-  if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
-  const dark = t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-  themeBtn.setAttribute('aria-pressed', String(dark));
-  themeBtn.innerHTML = `<span class="wide-only">Tema </span><span class="cap-narrow">${dark ? 'claro' : 'oscuro'}</span>`;
+  document.documentElement.dataset.theme = t;
+  const dark = t === 'dark';
+  themeSwitch.setAttribute('aria-checked', String(dark));
+  themeSwitch.title = dark ? 'Modo oscuro activo · cambiar a claro' : 'Modo claro activo · cambiar a oscuro';
 }
 let saved = null;
 try { saved = localStorage.getItem('dv:theme'); } catch { /* sin almacenamiento */ }
-applyTheme(saved);
-themeBtn.addEventListener('click', () => {
-  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-  const next = dark ? 'light' : 'dark';
+applyTheme(saved === 'light' ? 'light' : 'dark');
+themeSwitch.addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   try { localStorage.setItem('dv:theme', next); } catch { /* sin almacenamiento */ }
   applyTheme(next);
   render();
 });
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!document.documentElement.dataset.theme) { applyTheme(null); render(); } });
 
 lastId = parseHash().id;
 render();
