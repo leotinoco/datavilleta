@@ -119,7 +119,7 @@ export default {
       wide: true,
       async load({ q }) {
         const rows = await q('sfc_captaciones', {
-          $select: 'fecha_de_corte as f, sum(cartera_de_cr_ditos) as cart, sum(dep_sitos_de_ahorro) as aho, sum(certificados_de_dep_sito) as cdt, sum(dep_sitos_en_cuenta_corriente) as cte',
+          $select: 'fecha_de_corte as f, sum(cartera_de_cr_ditos) as cart, sum(cr_ditos_de_vivienda) as viv, sum(dep_sitos_de_ahorro) as aho, sum(certificados_de_dep_sito) as cdt, sum(n_mero_de_cdt) as n_cdt, sum(dep_sitos_en_cuenta_corriente) as cte',
           $where: "nombre_del_municipio='VILLETA'", $group: 'f', $order: 'f DESC', $limit: 8,
         });
         if (!rows.length) return { empty: true };
@@ -131,10 +131,11 @@ export default {
         return {
           asOf: trimestre(last.f),
           kpis: [
-            { label: 'Cartera de créditos', value: cop(toNum(last.cart)), delta: prev ? change(toNum(last.cart), toNum(prev.cart)) : null, deltaLabel: lbl, hint: `Corte ${fecha(last.f)}`, source: 'sfc_captaciones' },
-            { label: 'Depósitos (ahorro + CDT + corriente)', value: cop(dep(last)), delta: prev ? change(dep(last), dep(prev)) : null, deltaLabel: lbl, hint: `Corte ${fecha(last.f)}`, source: 'sfc_captaciones' },
+            { label: 'Cartera total de créditos', value: cop(toNum(last.cart)), delta: prev ? change(toNum(last.cart), toNum(prev.cart)) : null, deltaLabel: lbl, hint: `Corte ${fecha(last.f)}`, source: 'sfc_captaciones' },
+            { label: 'Cartera de vivienda', value: cop(toNum(last.viv)), delta: prev ? change(toNum(last.viv), toNum(prev.viv)) : null, deltaLabel: lbl, hint: `${num((toNum(last.viv) / (toNum(last.cart) || 1)) * 100, 1)} % de la cartera municipal`, source: 'sfc_captaciones' },
+            { label: 'Depósitos totales', value: cop(dep(last)), delta: prev ? change(dep(last), dep(prev)) : null, deltaLabel: lbl, hint: 'Ahorro + CDT + cuenta corriente', source: 'sfc_captaciones' },
             { label: 'Depósitos de ahorro', value: cop(toNum(last.aho)), delta: prev ? change(toNum(last.aho), toNum(prev.aho)) : null, deltaLabel: lbl, source: 'sfc_captaciones' },
-            { label: 'CDT', value: cop(toNum(last.cdt)), delta: prev ? change(toNum(last.cdt), toNum(prev.cdt)) : null, deltaLabel: lbl, source: 'sfc_captaciones' },
+            { label: 'Saldo en CDT', value: cop(toNum(last.cdt)), delta: prev ? change(toNum(last.cdt), toNum(prev.cdt)) : null, deltaLabel: lbl, hint: `${num(toNum(last.n_cdt))} títulos CDT vigentes`, source: 'sfc_captaciones' },
           ],
         };
       },
@@ -146,7 +147,7 @@ export default {
       wide: true,
       async load({ q }) {
         const rows = await q('sfc_captaciones', {
-          $select: 'fecha_de_corte as f, sum(cartera_de_cr_ditos) as cart, sum(dep_sitos_de_ahorro) as aho, sum(certificados_de_dep_sito) as cdt, sum(dep_sitos_en_cuenta_corriente) as cte',
+          $select: 'fecha_de_corte as f, sum(cartera_de_cr_ditos) as cart, sum(cr_ditos_de_vivienda) as viv, sum(dep_sitos_de_ahorro) as aho, sum(certificados_de_dep_sito) as cdt, sum(dep_sitos_en_cuenta_corriente) as cte',
           $where: "nombre_del_municipio='VILLETA'", $group: 'f', $order: 'f', $limit: 500,
         });
         if (!rows.length) return { empty: true };
@@ -157,8 +158,9 @@ export default {
           chart: {
             kind: 'line', format: 'cop', labels, timeline: rows.map(r => periodo(r.f)),
             series: [
-              { name: 'Cartera de créditos', data: rows.map(r => toNum(r.cart)) },
+              { name: 'Cartera total de créditos', data: rows.map(r => toNum(r.cart)) },
               { name: 'Depósitos (ahorro + CDT + corriente)', data: rows.map(r => toNum(r.aho) + toNum(r.cdt) + toNum(r.cte)) },
+              { name: 'Cartera de vivienda', data: rows.map(r => toNum(r.viv)) },
             ],
           },
           note: 'Valores nominales (sin ajustar por inflación). El conjunto registra a Villeta con código de departamento 11; se filtra por nombre del municipio.',

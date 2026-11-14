@@ -392,5 +392,102 @@ export default {
         };
       },
     },
+    {
+      type: 'chart',
+      title: 'Accesos fijos a internet por segmento y estrato',
+      subtitle: 'Distribución de las conexiones en el último trimestre publicado',
+      async load({ q, M }) {
+        const [last] = await q('mintic_internet', { $select: 'max(anno) as a', $where: `codigo_dane_municipio=${M.dane}` });
+        if (!last?.a) return { empty: true };
+        const [lt] = await q('mintic_internet', { $select: 'max(trimestre) as t', $where: `codigo_dane_municipio=${M.dane} and anno=${last.a}` });
+        const rows = await q('mintic_internet', {
+          $select: 'segmento, sum(accesos_fijos_internet) as n',
+          $where: `codigo_dane_municipio=${M.dane} and anno=${last.a} and trimestre=${lt.t}`,
+          $group: 'segmento',
+          $order: 'n DESC',
+        });
+        if (!rows.length) return { empty: true };
+        return {
+          labelTitle: 'Segmento / estrato',
+          asOf: ofQuarter(last.a, lt.t),
+          chart: { kind: 'hbar', labels: rows.map(r => titleCase(r.segmento)), series: [{ name: 'Accesos', data: rows.map(r => toNum(r.n)) }] },
+          note: `Periodo: ${last.a} T${lt.t}.`,
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'Accesos fijos a internet por velocidad de bajada (Mbps)',
+      subtitle: 'Conexiones agrupadas por rango de velocidad contratada (último trimestre)',
+      async load({ q, M }) {
+        const [last] = await q('mintic_internet', { $select: 'max(anno) as a', $where: `codigo_dane_municipio=${M.dane}` });
+        if (!last?.a) return { empty: true };
+        const [lt] = await q('mintic_internet', { $select: 'max(trimestre) as t', $where: `codigo_dane_municipio=${M.dane} and anno=${last.a}` });
+        const rows = await q('mintic_internet', {
+          $select: 'velocidad_bajada, sum(accesos_fijos_internet) as n',
+          $where: `codigo_dane_municipio=${M.dane} and anno=${last.a} and trimestre=${lt.t}`,
+          $group: 'velocidad_bajada',
+          $limit: 500,
+        });
+        if (!rows.length) return { empty: true };
+        const rangos = [
+          ['Menos de 10 Mbps', v => v < 10],
+          ['10 a 29 Mbps', v => v >= 10 && v < 30],
+          ['30 a 99 Mbps', v => v >= 30 && v < 100],
+          ['100 a 299 Mbps', v => v >= 100 && v < 300],
+          ['300 Mbps o más', v => v >= 300],
+        ];
+        const data = rangos.map(([label, fn]) => ({
+          label,
+          val: rows.filter(r => fn(toNum(r.velocidad_bajada) || 0)).reduce((a, r) => a + (toNum(r.n) || 0), 0),
+        }));
+        return {
+          labelTitle: 'Franja de velocidad de bajada',
+          asOf: ofQuarter(last.a, lt.t),
+          chart: { kind: 'bar', labels: data.map(d => d.label), series: [{ name: 'Accesos fijos', data: data.map(d => d.val) }] },
+          note: `Periodo: ${last.a} T${lt.t}. La transición hacia fibra óptica ha concentrado los planes residenciales y corporativos en velocidades superiores a 100 Mbps.`,
+        };
+      },
+    },
+    {
+      type: 'table',
+      title: 'Cobertura móvil por centro poblado y operador (MinTIC)',
+      subtitle: 'Disponibilidad declarada de redes 2G, 3G, HSPA+ y 4G/LTE en la cabecera y centros poblados de Villeta',
+      wide: true,
+      async load({ q, M }) {
+        const [last] = await q('mintic_cobertura_movil', { $select: 'max(a_o) as a', $where: `cod_municipio='${M.dane}'` });
+        if (!last?.a) return { empty: true };
+        const [lt] = await q('mintic_cobertura_movil', { $select: 'max(trimestre) as t', $where: `cod_municipio='${M.dane}' and a_o='${last.a}'` });
+        const rows = await q('mintic_cobertura_movil', {
+          $select: 'centro_poblado, cabecera_municipal, proveedor, cobertura_2g, cobertura_3g, cobertura_hspa_hspa_dc, cobertuta_4g, cobertura_lte',
+          $where: `cod_municipio='${M.dane}' and a_o='${last.a}' and trimestre='${lt.t}'`,
+          $order: 'cabecera_municipal DESC, centro_poblado, proveedor',
+          $limit: 200,
+        });
+        if (!rows.length) return { empty: true };
+        const siNo = v => (v === 'S' ? 'Sí' : v === 'N' ? 'No' : '—');
+        return {
+          asOf: ofQuarter(last.a, lt.t),
+          table: {
+            columns: [
+              { key: 'cp', label: 'Centro poblado / zona' },
+              { key: 'prov', label: 'Operador móvil' },
+              { key: 'g2', label: '2G' },
+              { key: 'g3', label: '3G / HSPA+' },
+              { key: 'g4', label: '4G / LTE' },
+            ],
+            rows: rows.map(r => ({
+              cp: `${titleCase(r.centro_poblado)}${r.cabecera_municipal === 'S' ? ' (Cabecera)' : ''}`,
+              prov: titleCase(r.proveedor),
+              g2: siNo(r.cobertura_2g),
+              g3: r.cobertura_3g === 'S' || r.cobertura_hspa_hspa_dc === 'S' ? 'Sí' : 'No',
+              g4: r.cobertuta_4g === 'S' || r.cobertura_lte === 'S' ? 'Sí' : 'No',
+            })),
+          },
+          maxHeight: 420,
+          note: `Trimestre reportado: ${last.a} T${lt.t}. Permite contrastar la cobertura 4G en la cabecera municipal frente a los centros poblados rurales (Bagazal, Tobia, La Magdalena, etc.).`,
+        };
+      },
+    },
   ],
 };

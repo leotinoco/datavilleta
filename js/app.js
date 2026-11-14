@@ -11,13 +11,14 @@ import esp from './sections/esp.js';
 import seguridad from './sections/seguridad.js';
 import educacion from './sections/educacion.js';
 import salud from './sections/salud.js';
+import social from './sections/social.js';
 import agro from './sections/agro.js';
 import contratacion from './sections/contratacion.js';
 import victimas from './sections/victimas.js';
 import territorio from './sections/territorio.js';
 import fuentes from './sections/fuentes.js';
 
-const SECTIONS = Object.fromEntries([inicio, turismo, economia, servicios, esp, seguridad, educacion, salud, agro, contratacion, victimas, territorio, fuentes].map(s => [s.id, s]));
+const SECTIONS = Object.fromEntries([inicio, turismo, economia, servicios, esp, seguridad, educacion, salud, social, agro, contratacion, victimas, territorio, fuentes].map(s => [s.id, s]));
 const SUBS = Object.fromEntries(Object.values(SECTIONS).map(s => [s.id, subsecciones(s)]));
 const main = document.getElementById('main');
 const nav = document.getElementById('nav-list');

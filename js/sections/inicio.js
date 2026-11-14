@@ -1,6 +1,6 @@
 import { NAV } from '../nav.js';
-import { num, toNum, change, cop, mes, escapeHtml } from '../format.js';
-import { THIS_YEAR, corteFecha, ytdWhere, ytdLabel } from './helpers.js';
+import { num, pct, toNum, change, cop, mes, escapeHtml } from '../format.js';
+import { THIS_YEAR, corteFecha, ytdWhere, ytdLabel, sum } from './helpers.js';
 import { secopBase, corteSecop } from './contratacion.js';
 import { ofYear, ofMonth, ofQuarter, ofDate, mesNumero } from '../freshness.js';
 
@@ -18,6 +18,11 @@ const TILES = [
     const rows = await q('supertransporte', { $select: 'date_extract_y(fecha_despacho) as y, sum(pasajeros) as p', $where: `municipio_destino_ruta='${M.dane}' and ${ytdWhere('fecha_despacho', c)}`, $group: 'y' });
     const s = y => toNum(rows.find(r => Number(r.y) === y)?.p) || 0;
     return { label: `Pasajeros hacia Villeta (${ytdLabel(c)} ${c.y})`, value: num(s(c.y)), delta: change(s(c.y), s(c.y - 1)), deltaLabel: `vs mismo periodo ${c.y - 1}`, goodWhen: 'up', asOf: c, source: 'supertransporte', href: 'turismo/' };
+  },
+  async ({ q }) => {
+    const rows = await q('ani_peajes', { $select: 'date_extract_y(desde) as y, sum(cantidadtrafico::number) as t', $where: "upper(peaje)='CAIQUERO'", $group: 'y', $order: 'y DESC', $limit: 3 });
+    const full = rows.filter(r => Number(r.y) < THIS_YEAR);
+    return { label: `Tráfico Peaje Caiquero (año ${full[0].y})`, value: num(toNum(full[0].t)), delta: full[1] ? change(toNum(full[0].t), toNum(full[1].t)) : null, deltaLabel: `vs ${full[1]?.y}`, goodWhen: 'up', hint: 'Corredor vial Dindal–Villeta', asOf: ofYear(full[0].y), source: 'ani_peajes', href: 'turismo/' };
   },
   ...[['delito_hurto_personas', 'Hurto a personas'], ['delito_homicidio', 'Homicidios'], ['delito_vif', 'Violencia intrafamiliar']].map(([key, label]) => async ({ q, M }) => {
     const [mx] = await q('delito_hurto_personas', { $select: 'max(fecha_hecho) as m' });
@@ -45,6 +50,12 @@ const TILES = [
     return { label: 'Cartera de créditos', value: cop(toNum(rows[0].c)), delta: prev ? change(toNum(rows[0].c), toNum(prev.c)) : null, deltaLabel: 'vs mismo trimestre año anterior', asOf: ofQuarter(d.getFullYear(), Math.ceil((d.getMonth() + 1) / 3)), source: 'sfc_captaciones', href: 'economia/' };
   },
   async ({ q, M }) => {
+    const rows = await q('sisben', { $select: 'grupo, corte, sum(fex::number) as pob', $where: `cod_mpio='${M.dane}'`, $group: 'grupo, corte' });
+    const tot = Math.round(sum(rows, r => r.pob));
+    const ab = Math.round(sum(rows.filter(r => r.grupo === 'A' || r.grupo === 'B'), r => r.pob));
+    return { label: 'Pobreza en Sisbén IV (Grupos A y B)', value: pct((ab / (tot || 1)) * 100, 1), hint: `${num(ab)} de ${num(tot)} personas categorizadas`, asOf: ofYear(rows[0]?.corte?.replace('SIV_', '')), source: 'sisben', href: 'social/' };
+  },
+  async ({ q, M }) => {
     const [r] = await q('ins_irca', { $select: 'a_o, irca', $where: `municipiocodigo='${M.dane}'`, $order: 'a_o DESC', $limit: 1 });
     const v = toNum(r.irca);
     return { label: 'Calidad del agua (IRCA)', value: num(v, 1), hint: `${nivelIrca(v)} (0 = mejor)`, asOf: ofYear(r.a_o), source: 'ins_irca', href: 'servicios/' };
@@ -62,38 +73,61 @@ const TILES = [
 
 export default {
   id: 'inicio',
-  eyebrow: 'Observatorio de datos públicos',
+  eyebrow: 'Observatorio territorial de datos públicos · Código DANE 25875',
   title: 'Villeta, Cundinamarca en datos',
-  intro: 'Información oficial sobre Villeta consultada en vivo en las APIs del Estado colombiano (datos.gov.co): ministerios, superintendencias, Policía, ICFES, DNP, Cámara de Comercio y otras entidades. Cada gráfico cita su fuente, la fecha de actualización y la consulta exacta a la API.',
+  intro: 'Plataforma abierta de consulta y verificación de estadísticas públicas de Villeta (Cundinamarca). Conecta en tiempo real con más de 65 conjuntos oficiales del Estado colombiano en datos.gov.co —ministerios, superintendencias, DNP, Policía Nacional, Medicina Legal, ADRES, INS, ICFES, UPRA, CAR, IDEAM y SECOP— e integra informes técnicos de servicios públicos para uso de periodistas, servidores públicos, concejales, veedurías y ciudadanía.',
   blocks: [
     {
       type: 'kpis',
-      title: 'Indicadores clave',
-      subtitle: 'Último dato disponible en cada fuente y su variación frente al periodo comparable anterior',
+      title: 'Indicadores clave del municipio',
+      subtitle: 'Último dato disponible en cada fuente oficial y su variación frente al periodo comparable anterior',
       wide: true,
       async load(ctx) {
         return {
           asOf: false,
           kpis: TILES.map(t => t(ctx)),
-          note: 'Cada indicador muestra el periodo de su último dato y si está actualizado, con rezago o desactualizado (pase el cursor para ver el criterio). ▲▼ indican la dirección del cambio; en verde cuando la variación es favorable y en rojo cuando es desfavorable. Haga clic en un indicador para ir a su sección. Si una fuente no responde, su indicador se omite.',
+          note: 'Cada indicador muestra el periodo de su último dato y si está actualizado, con rezago o desactualizado (pase el cursor para ver el criterio). ▲▼ indican la dirección del cambio; en verde cuando la variación es favorable y en rojo cuando es desfavorable. Haga clic en cualquier indicador para abrir su sección detallada.',
         };
       },
     },
     {
       type: 'html',
       wide: true,
-      html: `<h2 class="nav-title">Secciones</h2><div class="nav-grid">${NAV.filter(n => n.id !== 'inicio').map(n => `<a class="nav-card" href="${n.id}/"><strong>${escapeHtml(n.label)}</strong><span>${escapeHtml(n.desc)}</span></a>`).join('')}</div>`,
+      html: `<h2 class="nav-title">Áreas temáticas del observatorio</h2><div class="nav-grid">${NAV.filter(n => n.id !== 'inicio').map(n => `<a class="nav-card" href="${n.id}/"><strong>${escapeHtml(n.label)}</strong><span>${escapeHtml(n.desc)}</span></a>`).join('')}</div>`,
     },
     {
       type: 'html',
       wide: true,
-      html: `<div class="ficha"><h2>Ficha del municipio</h2><dl>
-        <div><dt>Código DANE</dt><dd>25875</dd></div>
-        <div><dt>Departamento</dt><dd>Cundinamarca</dd></div>
-        <div><dt>Provincia</dt><dd>Gualivá</dd></div>
+      html: `<div class="press-guide">
+        <h2>Guía rápida para periodistas, investigadores y servidores públicos</h2>
+        <div class="press-grid">
+          <div>
+            <strong>1. Trazabilidad y auditoría en un clic</strong>
+            <p>Ninguna cifra es una "caja negra". Al pie de cada gráfico encontrará el enlace directo al conjunto oficial en <code>datos.gov.co</code> y el desplegable <em>Consulta API</em> con la sentencia SoQL exacta que genera los datos.</p>
+          </div>
+          <div>
+            <strong>2. Descarga de datos, tablas y citación</strong>
+            <p>Todas las tarjetas cuentan con los botones <em>Ver tabla</em>, <em>Descargar CSV</em> (compatible con Excel en español) y <em>Copiar cita</em> para incorporar la fuente técnica en informes oficiales, derechos de petición o notas de prensa.</p>
+          </div>
+          <div>
+            <strong>3. Semáforo de vigencia y alcance territorial</strong>
+            <p>El distintivo superior derecho indica el corte real del dato (<em>✓ Actualizado</em>, <em>◔ Con rezago</em>, <em>! Desactualizado</em> o <em>■ Serie cerrada</em>). Cuando un indicador es regional o provincial, una etiqueta ámbar advierte su alcance exacto.</p>
+          </div>
+        </div>
+      </div>`,
+    },
+    {
+      type: 'html',
+      wide: true,
+      html: `<div class="ficha"><h2>Ficha institucional y territorial del municipio</h2><dl>
+        <div><dt>Código DANE</dt><dd>25875 (Departamento 25 · Cundinamarca)</dd></div>
+        <div><dt>Provincia administrativa</dt><dd>Gualivá (capital provincial)</dd></div>
+        <div><dt>Autoridad ambiental y cuenca</dt><dd>CAR Cundinamarca (Regional Gualivá) · Cuenca río Tobia – río Negro</dd></div>
         <div><dt>Cámara de Comercio</dt><dd>Facatativá (código RUES 47)</dd></div>
-        <div><dt>Gestor catastral</dt><dd>Agencia Catastral de Cundinamarca</dd></div>
-        <div><dt>Prestador de acueducto, alcantarillado y aseo</dt><dd>Empresa de Servicios Públicos E.S.P. de Villeta</dd></div>
+        <div><dt>Centro Zonal ICBF</dt><dd>CZ Villeta (código 2505)</dd></div>
+        <div><dt>Gestor catastral</dt><dd>Agencia Catastral de Cundinamarca (ACC)</dd></div>
+        <div><dt>Prestador urbano de AAA</dt><dd>Empresa de Servicios Públicos E.S.P. de Villeta (+ 4 acueductos comunitarios en SUI)</dd></div>
+        <div><dt>Corredor vial nacional</dt><dd>Ruta Nacional 50 (Bogotá – La Vega – Villeta – Guaduas · Peaje Caiquero)</dd></div>
       </dl></div>`,
     },
   ],

@@ -5,6 +5,7 @@
   <url><loc>https://leotinoco.github.io/datavilleta/turismo/oferta-turistica-vigente/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/turismo/evolucion-del-registro-turistico-2005-2026/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/turismo/llegada-de-visitantes-por-carretera/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/turismo/flujo-vehicular-en-el-corredor-vial-peaje-caiquero-ani/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/economia/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/economia/registro-mercantil-camara-de-comercio-de-facatativa/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/economia/sistema-financiero-en-villeta/</loc></url>
@@ -25,11 +26,20 @@
   <url><loc>https://leotinoco.github.io/datavilleta/seguridad/ano-corrido/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/seguridad/serie-historica-por-delito/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/seguridad/detalle-por-modalidad/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/seguridad/medicina-legal-y-ciencias-forenses/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/seguridad/siniestralidad-vial-y-convivencia-ciudadana/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/educacion/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/educacion/educacion-preescolar-basica-y-media/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/educacion/pruebas-saber-11-icfes/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/educacion/tecnologia-educativa-y-formacion-para-el-trabajo-sena/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/educacion/cultura/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/salud/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/salud/aseguramiento-y-red-de-prestadores/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/salud/vigilancia-en-salud-publica-sivigila-e-ins/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/social/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/social/clasificacion-socioeconomica-sisben-iv/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/social/programas-de-superacion-de-la-pobreza-y-primera-infancia/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/social/proteccion-a-la-vejez-y-organizacion-comunitaria/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/agro/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/agro/cana-panelera/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/agro/ganaderia-y-credito-rural/</loc></url>
@@ -38,6 +48,15 @@
   <url><loc>https://leotinoco.github.io/datavilleta/contratacion/contratos-publicos-secop/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/contratacion/regalias-y-desempeno-de-la-administracion-municipal/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/victimas/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/victimas/registro-unico-de-victimas-uariv/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/victimas/restitucion-de-tierras-urt/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/territorio/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/territorio/gestion-del-riesgo-de-desastres-ungrd/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/territorio/quejas-y-conflictividad-ambiental-car-cundinamarca/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/territorio/clima-y-red-hidrometeorologica-ideam/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/territorio/cartografia-oficial-y-capas-de-amenaza-y-riesgo/</loc></url>
   <url><loc>https://leotinoco.github.io/datavilleta/fuentes/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/fuentes/catalogo-de-conjuntos-de-datos-en-vivo/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/fuentes/metodologia-y-guia-para-periodistas-y-servidores-publicos/</loc></url>
+  <url><loc>https://leotinoco.github.io/datavilleta/fuentes/documentos-tecnicos-transcritos-y-catalogo-complementario/</loc></url>
 </urlset>

@@ -1,13 +1,16 @@
-import { toNum, titleCase, cop, num } from '../format.js';
-import { THIS_YEAR, cleanLabel, corteFecha } from './helpers.js';
+import { toNum, titleCase, cop, num, pct } from '../format.js';
+import { THIS_YEAR, cleanLabel, corteFecha, sum, groupSum } from './helpers.js';
 import { ofYear } from '../freshness.js';
 
 const corteFinagro = (q, M) => corteFecha(q, 'finagro', 'fecha_credito', `cod_municipio=${M.dane}`);
 
+// Códigos DANE de los 12 municipios de la Provincia del Gualivá (Cundinamarca).
+const GUALIVA_DANE = ['25019', '25320', '25398', '25402', '25489', '25491', '25592', '25658', '25718', '25777', '25851', '25875'];
+
 export default {
   id: 'agro',
-  title: 'Agro y ruralidad',
-  intro: 'Producción agrícola municipal (con énfasis en la caña panelera, principal cultivo de Villeta), inventario bovino, crédito agropecuario de fomento y uso del suelo según el catastro.',
+  title: 'Agro, uso del suelo y tierra rural',
+  intro: 'Producción agrícola municipal (con énfasis en la caña panelera, cultivo insignia de Villeta), inventario bovino, crédito agropecuario de fomento (FINAGRO) por tipo de productor y sexo, uso del suelo según el catastro multipropósito e índice de informalidad en la tenencia de la tierra rural (UPRA).',
   blocks: [
     { type: 'heading', title: 'Caña panelera', text: 'Las Evaluaciones Agropecuarias Municipales cambiaron de metodología y de entidad responsable en 2019: hasta 2018 la producción se reporta en toneladas de <strong>panela</strong>; desde 2019, en toneladas de <strong>caña</strong>. Por eso las series se muestran por separado.' },
     {
@@ -66,6 +69,7 @@ export default {
         };
       },
     },
+
     { type: 'heading', title: 'Ganadería y crédito rural' },
     {
       type: 'chart',
@@ -108,12 +112,57 @@ export default {
         return { labelTitle: 'Cadena', asOf: await corteFinagro(q, M), chart: { kind: 'hbar', format: 'cop', labels: rows.map(r => titleCase(r.cadena || 'Sin cadena')), series: [{ name: 'Valor desembolsado', data: rows.map(r => toNum(r.v)) }] } };
       },
     },
-    { type: 'heading', title: 'Uso del suelo según el catastro' },
     {
       type: 'chart',
-      title: 'Predios por destino económico',
-      subtitle: 'Número de predios por destino y sector (urbano, rural, corregimiento)',
-      wide: true,
+      title: 'Crédito agropecuario por tamaño de productor y sexo',
+      subtitle: 'Número de operaciones de crédito FINAGRO en Villeta según tipo de productor y género del beneficiario',
+      async load({ q, M }) {
+        const rows = await q('finagro', {
+          $select: 'tipo_productor, sexo, count(*) as n, sum(valor_credito) as v, sum(valor_subsidio) as s',
+          $where: `cod_municipio=${M.dane}`,
+          $group: 'tipo_productor, sexo',
+        });
+        if (!rows.length) return { empty: true };
+        const normProd = p => {
+          const s = String(p || '').toLowerCase();
+          if (s.includes('ppib') || s.includes('ingresos bajos')) return 'Pequeño productor de ingresos bajos';
+          if (s.includes('peque')) return 'Pequeño productor';
+          if (s.includes('mediano')) return 'Mediano productor';
+          if (s.includes('grande')) return 'Gran productor';
+          return titleCase(p || 'Otro');
+        };
+        const tipos = ['Pequeño productor', 'Pequeño productor de ingresos bajos', 'Mediano productor', 'Gran productor'];
+        const sexos = [
+          ['Mujer', 'Mujeres rurales'],
+          ['Hombre', 'Hombres'],
+          ['Sociedad', 'Personas jurídicas / sociedades'],
+        ];
+        const totalSub = sum(rows, r => r.s);
+        return {
+          labelTitle: 'Tipo de productor',
+          asOf: await corteFinagro(q, M),
+          chart: {
+            kind: 'hstacked',
+            labels: tipos,
+            series: sexos.map(([raw, label]) => ({
+              name: label,
+              data: tipos.map(t => sum(rows.filter(r => normProd(r.tipo_productor) === t && String(r.sexo || '').toLowerCase().includes(raw.toLowerCase())), r => r.n)),
+            })),
+          },
+          note: `Total de operaciones desde 2020: ${num(sum(rows, r => r.n))} créditos (${num(sum(rows.filter(r => /mujer/i.test(r.sexo)), r => r.n))} otorgados a mujeres rurales) con subsidios de tasa e incentivos por ${cop(totalSub)}.`,
+        };
+      },
+    },
+
+    {
+      type: 'heading',
+      title: 'Uso del suelo según el catastro',
+      text: 'Distribución de los predios y del área catastral de Villeta según la Agencia Catastral de Cundinamarca, y estimación de la informalidad en la tenencia de la tierra rural realizada por la Unidad de Planificación Rural Agropecuaria (UPRA).',
+    },
+    {
+      type: 'chart',
+      title: 'Predios por destino económico y sector',
+      subtitle: 'Número de matrículas catastrales por destino (urbano, rural y corregimientos)',
       async load({ q }) {
         const rows = await q('catastro', { $select: 'dest_econo as d, sector as s, count(*) as n', $group: 'd, s', $limit: 500 });
         if (!rows.length) return { empty: true };
@@ -125,6 +174,69 @@ export default {
           labelTitle: 'Destino económico',
           chart: { kind: 'hstacked', labels: dest.map(cleanLabel), series: sectors.map(s => ({ name: titleCase(s === 'CORREGIM' ? 'Corregimiento' : s), data: dest.map(d => toNum(rows.find(r => r.d === d && r.s === s)?.n) || 0) })) },
           note: 'Base catastral publicada por la Agencia Catastral de Cundinamarca (gestor catastral del municipio).',
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'Superficie catastral por destino económico (hectáreas)',
+      subtitle: 'Área física total (ha) de los predios de Villeta según su uso económico y sector',
+      async load({ q }) {
+        const rows = await q('catastro', {
+          $select: 'dest_econo as d, sector as s, sum(area_geom) as area, count(*) as n',
+          $group: 'd, s',
+          $limit: 500,
+        });
+        if (!rows.length) return { empty: true };
+        const mapHa = groupSum(rows, r => cleanLabel(r.d), r => (toNum(r.area) || 0) / 10000);
+        const dest = [...mapHa.entries()].filter(([, v]) => v >= 1).sort((a, b) => b[1] - a[1]);
+        return {
+          labelTitle: 'Destino económico',
+          chart: {
+            kind: 'hbar',
+            format: 'dec',
+            labels: dest.map(([k]) => k),
+            series: [{ name: 'Superficie (ha)', data: dest.map(([, v]) => Number(v.toFixed(1))) }],
+          },
+          note: 'Mientras que los predios habitacionales representan la mayoría de las matrículas urbanas, los predios agropecuarios, recreacionales y de uso público concentran la mayor parte de la superficie del municipio.',
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'Índice de informalidad en la tenencia de la tierra rural (UPRA)',
+      subtitle: 'Porcentaje estimado de predios rurales con presunta informalidad en los municipios de la Provincia del Gualivá',
+      scope: { nivel: 'Comparación provincial (Gualivá)', texto: 'compara el índice municipal de Villeta con los otros 11 municipios de la Provincia del Gualivá en Cundinamarca.' },
+      wide: true,
+      async load({ q, M }) {
+        const rows = await q('upra_informalidad', {
+          $select: 'cod_dane_m, municipio, area_ha, informalid',
+          $where: `cod_dane_m in (${GUALIVA_DANE.map(c => `'${c}'`).join(',')})`,
+          $order: 'informalid::number DESC',
+        });
+        if (!rows.length) return { empty: true };
+        const vil = rows.find(r => r.cod_dane_m === M.dane);
+        return {
+          labelTitle: 'Municipio (Provincia del Gualivá)',
+          chart: {
+            kind: 'hbar',
+            format: 'pct',
+            labels: rows.map(r => (r.cod_dane_m === M.dane ? `${r.municipio} (municipio analizado)` : r.municipio)),
+            series: [{ name: 'Informalidad en la tenencia (%)', data: rows.map(r => Number(((toNum(r.informalid) || 0) * 100).toFixed(2))) }],
+          },
+          table: {
+            columns: [
+              { key: 'm', label: 'Municipio' },
+              { key: 'inf', label: 'Índice de informalidad', align: 'right', format: v => pct(v, 2) },
+              { key: 'ha', label: 'Área rural evaluada (ha)', align: 'right', format: v => num(v, 1) },
+            ],
+            rows: rows.map(r => ({
+              m: r.municipio,
+              inf: (toNum(r.informalid) || 0) * 100,
+              ha: toNum(r.area_ha) || 0,
+            })),
+          },
+          note: vil ? `En Villeta el índice de informalidad de tenencia de la tierra rural calculado por la UPRA es del ${pct((toNum(vil.informalid) || 0) * 100, 2)} sobre un área evaluada de ${num(toNum(vil.area_ha), 1)} hectáreas.` : undefined,
         };
       },
     },

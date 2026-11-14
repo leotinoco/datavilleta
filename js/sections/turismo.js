@@ -374,5 +374,49 @@ export default {
         };
       },
     },
+    {
+      type: 'heading',
+      title: 'Flujo vehicular en el corredor vial (Peaje Caiquero – ANI)',
+      text: 'Tráfico vehicular registrado por la Agencia Nacional de Infraestructura (ANI) en la estación de peaje Caiquero (tramo Dindal–Villeta). Refleja el flujo de automóviles particulares, buses y transporte de carga sobre el eje vial de Villeta.',
+    },
+    {
+      type: 'chart',
+      title: 'Tráfico anual por la estación de peaje Caiquero (2014–2026)',
+      subtitle: 'Vehículos contabilizados por año según tipo (livianos vs. buses y carga)',
+      scope: {
+        nivel: 'Corredor vial regional (Peaje Caiquero)',
+        texto: 'registra todos los vehículos que cruzan la estación de peaje Caiquero en el corredor de Villeta; incluye tanto viajeros con destino al municipio como tráfico pasante hacia Guaduas y la Ruta del Sol.',
+      },
+      wide: true,
+      async load({ q }) {
+        const rows = await q('ani_peajes', {
+          $select: 'date_extract_y(desde) as y, categoriatarifa as cat, sum(cantidadtrafico::number) as t, max(hasta) as u',
+          $where: "upper(peaje)='CAIQUERO'",
+          $group: 'y, cat',
+          $order: 'y',
+        });
+        if (!rows.length) return { empty: true };
+        const years = [...new Set(rows.map(r => r.y))].sort();
+        const lastDate = rows.map(r => r.u).filter(Boolean).sort().at(-1);
+        const d = lastDate ? new Date(lastDate) : null;
+        const isLiviano = cat => /^I($|E)/i.test(String(cat || '').trim());
+        const sumCat = (y, fn) => rows.filter(r => r.y === y && fn(r.cat)).reduce((a, r) => a + (toNum(r.t) || 0), 0);
+        return {
+          labelTitle: 'Año',
+          asOf: d ? ofMonth(d.getFullYear(), d.getMonth() + 1) : ofYear(years.at(-1)),
+          chart: {
+            kind: 'stacked',
+            format: 'compact',
+            partialLast: Number(years.at(-1)) === THIS_YEAR,
+            labels: years.map(y => (Number(y) === THIS_YEAR ? `${y}*` : String(y))),
+            series: [
+              { name: 'Categoría I (automóviles, camperos y camionetas)', data: years.map(y => sumCat(y, isLiviano)) },
+              { name: 'Categorías II a V y especiales (buses y camiones)', data: years.map(y => sumCat(y, c => !isLiviano(c))) },
+            ],
+          },
+          note: `Total acumulado desde 2014 en el peaje Caiquero: ${num(rows.reduce((a, r) => a + (toNum(r.t) || 0), 0))} vehículos. La caída de 2020 refleja las restricciones de movilidad durante la pandemia de COVID-19.`,
+        };
+      },
+    },
   ],
 };

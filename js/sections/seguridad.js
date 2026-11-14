@@ -1,7 +1,7 @@
 import { DELITOS } from '../sources.js';
 import { num, toNum, change, signedPct, mes, MESES_CORTOS, fecha, titleCase } from '../format.js';
-import { THIS_YEAR } from './helpers.js';
-import { ofDate } from '../freshness.js';
+import { THIS_YEAR, sum, groupSum, topN } from './helpers.js';
+import { ofDate, ofYear } from '../freshness.js';
 
 // Serie mensual completa de un delito para Villeta (una sola consulta por delito, reutilizada por todas las tarjetas).
 const monthly = (q, M, d) => q(`delito_${d.key}`, {
@@ -48,10 +48,17 @@ const smallMultiple = d => ({
   },
 });
 
+const CONTEXTO_VIF = {
+  '1 Lesiones no Fatales contra la Pareja': 'Contra la pareja o expareja',
+  '2 Lesiones no Fatales contra el Adulto Mayor por Violencia Intrafamiliar': 'Contra el adulto mayor',
+  '3 Lesiones no Fatales contra Niños, Niñas y Adolescentes por Violencia Intrafamiliar': 'Contra niños, niñas y adolescentes',
+  '4 Lesiones no Fatales por Violencia entre otros Familiares': 'Entre otros familiares',
+};
+
 export default {
   id: 'seguridad',
-  title: 'Seguridad y convivencia',
-  intro: 'Delitos y conductas registradas por la Policía Nacional en Villeta, publicadas por el Ministerio de Defensa. Incluye comparativo del año corrido frente al mismo periodo del año anterior y la serie histórica de cada delito.',
+  title: 'Seguridad, justicia forense y convivencia',
+  intro: 'Delitos y conductas registradas por la Policía Nacional (SIEDCO – Ministerio de Defensa), dictámenes médico-legales de lesiones fatales y no fatales del Instituto Nacional de Medicina Legal, siniestralidad vial (Ministerio de Transporte) y medidas correctivas del Código Nacional de Seguridad y Convivencia Ciudadana (Ley 1801).',
   filters: [
     { id: 'desde', label: 'Serie histórica desde', default: '2010', options: [{ value: '2003', label: '2003' }, { value: '2010', label: '2010' }, { value: '2016', label: '2016' }, { value: String(THIS_YEAR - 5), label: String(THIS_YEAR - 5) }] },
     { id: 'delito', label: 'Delito para el comparativo mensual', default: 'hurto_personas', options: DELITOS.map(d => ({ value: d.key, label: d.nombre })) },
@@ -120,6 +127,27 @@ export default {
     { type: 'heading', title: 'Detalle por modalidad' },
     {
       type: 'chart',
+      title: 'Homicidios según arma o medio empleado',
+      subtitle: 'Casos acumulados desde el año del filtro según el arma o medio reportado por MinDefensa',
+      async load({ q, M, filters }) {
+        const rows = await q('delito_homicidio', {
+          $select: 'arma_medio, sum(cantidad) as n',
+          $where: `cod_muni='${M.dane}' and fecha_hecho >= '${filters.desde}-01-01' and arma_medio is not null`,
+          $group: 'arma_medio',
+          $order: 'n DESC',
+        });
+        if (!rows.length) return { empty: true };
+        const cut = await cutoff(q);
+        const entries = topN(rows.map(r => [titleCase(r.arma_medio), toNum(r.n) || 0]), 8, 'Otros medios');
+        return {
+          labelTitle: 'Arma o medio',
+          asOf: ofDate(cut.date),
+          chart: { kind: 'hbar', labels: entries.map(([k]) => k), series: [{ name: 'Homicidios', data: entries.map(([, v]) => v) }] },
+        };
+      },
+    },
+    {
+      type: 'chart',
       title: 'Hurto a vehículos por tipo',
       subtitle: 'Casos por año según el tipo de vehículo',
       async load({ q, M, filters }) {
@@ -157,6 +185,222 @@ export default {
         const rows = await q('delito_informaticos', { $select: 'descripcion_conducta as c, sum(cantidad) as n', $where: `cod_muni='${M.dane}' and fecha_hecho >= '${filters.desde}-01-01'`, $group: 'c', $order: 'n DESC' });
         if (!rows.length) return { empty: true };
         return { labelTitle: 'Conducta', asOf: ofDate((await cutoff(q)).date), chart: { kind: 'hbar', labels: rows.map(r => titleCase(r.c)), series: [{ name: 'Casos', data: rows.map(r => toNum(r.n)) }] } };
+      },
+    },
+
+    {
+      type: 'heading',
+      title: 'Medicina Legal y ciencias forenses',
+      text: 'Valoraciones médico-legales y necropsias realizadas por el Instituto Nacional de Medicina Legal y Ciencias Forenses por hechos ocurridos en el municipio de Villeta.',
+    },
+    {
+      type: 'chart',
+      title: 'Violencia intrafamiliar según contexto (Medicina Legal)',
+      subtitle: 'Valoraciones médico-legales por lesiones no fatales intrafamiliares en Villeta por año',
+      async load({ q, M }) {
+        const rows = await q('medlegal_vif', {
+          $select: 'a_o_del_hecho as y, contexto_del_hecho as c, count(*) as n',
+          $where: `codigo_dane_municipio='${M.dane}'`,
+          $group: 'y, c',
+          $order: 'y',
+        });
+        if (!rows.length) return { empty: true };
+        const years = [...new Set(rows.map(r => r.y))].sort();
+        const contextos = [...new Set(rows.map(r => r.c))];
+        return {
+          labelTitle: 'Año del hecho',
+          asOf: ofYear(years.at(-1)),
+          chart: {
+            kind: 'stacked',
+            labels: years,
+            series: contextos.map(c => ({
+              name: CONTEXTO_VIF[c] || titleCase(c),
+              data: years.map(y => toNum(rows.find(r => r.y === y && r.c === c)?.n) || 0),
+            })),
+          },
+          note: 'A diferencia de las denuncias ante la Policía Nacional, este registro recoge los casos en los que la víctima asistió a valoración médico-legal forense.',
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'Homicidios y suicidios forenses en Villeta (Medicina Legal)',
+      subtitle: 'Necropsias médico-legales practicadas por hechos ocurridos en el municipio',
+      async load({ q, M }) {
+        const [hom, sui, fat] = await Promise.all([
+          q('medlegal_homicidios', {
+            $select: 'a_o_del_hecho as y, count(*) as n',
+            $where: `codigo_dane_municipio='${M.dane}'`,
+            $group: 'y',
+            $order: 'y',
+          }),
+          q('medlegal_suicidios', {
+            $select: 'a_o_del_hecho as y, count(*) as n',
+            $where: `codigo_dane_municipio='${M.dane}'`,
+            $group: 'y',
+            $order: 'y',
+          }),
+          q('medlegal_fatales', {
+            $select: 'a_o_del_hecho as y, manera_de_muerte as m, count(*) as n',
+            $where: `codigo_dane_municipio='${M.dane}'`,
+            $group: 'y, m',
+            $order: 'y',
+          }),
+        ]);
+        const mapH = new Map(hom.map(r => [String(r.y), toNum(r.n) || 0]));
+        const mapS = new Map(sui.map(r => [String(r.y), toNum(r.n) || 0]));
+        for (const r of fat) {
+          const y = String(r.y);
+          if (/homicidio/i.test(r.m) && !mapH.has(y)) mapH.set(y, toNum(r.n) || 0);
+          if (/suicidio/i.test(r.m) && !mapS.has(y)) mapS.set(y, toNum(r.n) || 0);
+        }
+        const years = [...new Set([...mapH.keys(), ...mapS.keys()])].sort();
+        if (!years.length) return { empty: true };
+        return {
+          labelTitle: 'Año del hecho',
+          sources: ['medlegal_homicidios', 'medlegal_suicidios', 'medlegal_fatales'],
+          asOf: ofYear(years.at(-1)),
+          chart: {
+            kind: 'bar',
+            labels: years.map(y => (Number(y) === THIS_YEAR ? `${y}*` : y)),
+            partialLast: Number(years.at(-1)) === THIS_YEAR,
+            series: [
+              { name: 'Presuntos homicidios', data: years.map(y => mapH.get(y) || 0) },
+              { name: 'Presuntos suicidios', data: years.map(y => mapS.get(y) || 0) },
+            ],
+          },
+          note: 'Integra la serie consolidada 2015–2024 y las cifras preliminares de lesiones fatales de causa externa para 2025 y el año en curso.',
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'Personas reportadas como desaparecidas en Villeta (SIRDEC)',
+      subtitle: 'Casos registrados en el Sistema de Información Red de Desaparecidos y Cadáveres según estado actual',
+      async load({ q, M }) {
+        const rows = await q('medlegal_desaparecidos', {
+          $select: 'a_o_de_la_desaparicion as y, estado_de_la_desaparicion as e, count(*) as n',
+          $where: `codigo_dane_municipio='${M.dane}'`,
+          $group: 'y, e',
+          $order: 'y',
+        });
+        if (!rows.length) return { empty: true };
+        const years = [...new Set(rows.map(r => r.y))].sort();
+        const estados = [...new Set(rows.map(r => r.e))];
+        return {
+          labelTitle: 'Año de desaparición',
+          asOf: ofYear(years.at(-1)),
+          chart: {
+            kind: 'stacked',
+            labels: years,
+            series: estados.map(e => ({
+              name: titleCase(e),
+              data: years.map(y => toNum(rows.find(r => r.y === y && r.e === e)?.n) || 0),
+            })),
+          },
+          note: `Total histórico reportado en Villeta: ${num(sum(rows, r => r.n))} casos (${num(sum(rows.filter(r => /vivo/i.test(r.e)), r => r.n))} aparecieron vivos, ${num(sum(rows.filter(r => /desaparecido/i.test(r.e)), r => r.n))} continúan desaparecidos y ${num(sum(rows.filter(r => /muerto/i.test(r.e)), r => r.n))} aparecieron fallecidos).`,
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'Lesiones fatales de causa externa recientes por manera de muerte',
+      subtitle: 'Cifras preliminares 2025–2026 del Instituto Nacional de Medicina Legal en Villeta',
+      async load({ q, M }) {
+        const rows = await q('medlegal_fatales', {
+          $select: 'a_o_del_hecho as y, manera_de_muerte as m, count(*) as n',
+          $where: `codigo_dane_municipio='${M.dane}'`,
+          $group: 'y, m',
+          $order: 'y, n DESC',
+        });
+        if (!rows.length) return { empty: true };
+        const cleanM = s => titleCase(String(s || '').replace(/^\d+\s*/, ''));
+        const maneras = [...new Set(rows.map(r => cleanM(r.m)))];
+        const years = [...new Set(rows.map(r => r.y))].sort();
+        return {
+          labelTitle: 'Manera de muerte',
+          asOf: ofYear(years.at(-1)),
+          chart: {
+            kind: 'bar',
+            labels: maneras,
+            series: years.map(y => ({
+              name: Number(y) === THIS_YEAR ? `${y}*` : String(y),
+              data: maneras.map(m => sum(rows.filter(r => r.y === y && cleanM(r.m) === m), r => r.n)),
+            })),
+          },
+        };
+      },
+    },
+
+    {
+      type: 'heading',
+      title: 'Siniestralidad vial y convivencia ciudadana',
+      text: 'Vehículos involucrados en siniestros viales en jurisdicción de Villeta (Ministerio de Transporte) y medidas correctivas aplicadas por la Policía Nacional bajo el Código Nacional de Seguridad y Convivencia Ciudadana (Ley 1801 de 2016).',
+    },
+    {
+      type: 'chart',
+      title: 'Vehículos involucrados en accidentes de tránsito en Villeta por clase y gravedad',
+      subtitle: 'Registro nacional de siniestralidad vial del Ministerio de Transporte en el municipio',
+      async load({ q }) {
+        const rows = await q('mintransporte_accidentes', {
+          $select: 'tipo_vehiculo, gravedad_accidente, count(*) as n',
+          $where: "upper(municipio_accidente)='VILLETA'",
+          $group: 'tipo_vehiculo, gravedad_accidente',
+          $order: 'n DESC',
+        });
+        if (!rows.length) return { empty: true };
+        const mapT = groupSum(rows, r => titleCase(r.tipo_vehiculo || 'Sin especificar'), r => r.n);
+        const tipos = [...mapT.entries()].sort((a, b) => b[1] - a[1]).slice(0, 7).map(([k]) => k);
+        const gravs = [...new Set(rows.map(r => r.gravedad_accidente))];
+        return {
+          labelTitle: 'Clase de vehículo',
+          chart: {
+            kind: 'hstacked',
+            labels: tipos,
+            series: gravs.map(g => ({
+              name: titleCase(g),
+              data: tipos.map(t => sum(rows.filter(r => titleCase(r.tipo_vehiculo || 'Sin especificar') === t && r.gravedad_accidente === g), r => r.n)),
+            })),
+          },
+          note: 'Las motocicletas y los vehículos de carga (camiones y tractocamiones que transitan por el corredor vial) concentran la mayor participación en siniestros con lesionados y fallecidos.',
+        };
+      },
+    },
+    {
+      type: 'chart',
+      title: 'Comportamientos contrarios a la convivencia en Villeta (Ley 1801)',
+      subtitle: 'Artículos del Código Nacional de Seguridad y Convivencia Ciudadana con mayor número de medidas correctivas',
+      async load({ q }) {
+        const [art, med] = await Promise.all([
+          q('policia_convivencia', {
+            $select: 'articulo, count(*) as n',
+            $where: "upper(lugar) like '%VILLETA%'",
+            $group: 'articulo',
+            $order: 'n DESC',
+          }),
+          q('policia_comparendos', {
+            $select: 'vigencia, medida_se_alada_del_codigo as m, sum(total::number) as n',
+            $where: "upper(municipio)='VILLETA'",
+            $group: 'vigencia, m',
+            $order: 'n DESC',
+          }),
+        ]);
+        if (!art.length && !med.length) return { empty: true };
+        const vig = med[0]?.vigencia;
+        const items = art.length
+          ? art.slice(0, 8).map(r => ({ label: r.articulo, val: toNum(r.n) || 0 }))
+          : med.slice(0, 8).map(r => ({ label: r.m, val: toNum(r.n) || 0 }));
+        return {
+          labelTitle: 'Artículo / comportamiento',
+          sources: ['policia_convivencia', 'policia_comparendos'],
+          asOf: vig ? ofYear(vig) : undefined,
+          chart: {
+            kind: 'hbar',
+            labels: items.map(x => x.label),
+            series: [{ name: 'Medidas registradas', data: items.map(x => x.val) }],
+          },
+          note: 'El Art. 27 (comportamientos que ponen en riesgo la vida e integridad, como riñas o porte de armas blancas) y el Art. 140 (cuidado e integridad del espacio público) concentran la mayoría de las actuaciones.',
+        };
       },
     },
   ],

@@ -2,15 +2,25 @@
 // id = identificador del conjunto de datos en datos.gov.co (API Socrata / SODA).
 
 const MINDEFENSA = 'Ministerio de Defensa Nacional – Policía Nacional (SIEDCO)';
+const POLICIA = 'Policía Nacional de Colombia';
+const MEDLEGAL = 'Instituto Nacional de Medicina Legal y Ciencias Forenses';
 const SSPD = 'Superintendencia de Servicios Públicos Domiciliarios (Superservicios)';
 const SFC = 'Superintendencia Financiera de Colombia';
 const UNGRD = 'Unidad Nacional para la Gestión del Riesgo de Desastres (UNGRD)';
 const UARIV = 'Unidad para la Atención y Reparación Integral a las Víctimas (UARIV)';
+const ADRES = 'Administradora de los Recursos del Sistema General de Seguridad Social en Salud (ADRES)';
+const INS = 'Instituto Nacional de Salud (INS)';
+const MINTIC = 'Ministerio de Tecnologías de la Información y las Comunicaciones (MinTIC)';
+const DPS = 'Departamento Administrativo para la Prosperidad Social';
+const ICBF = 'Instituto Colombiano de Bienestar Familiar (ICBF)';
+const IDEAM = 'Instituto de Hidrología, Meteorología y Estudios Ambientales (IDEAM)';
 
 export const SOURCES = {
   // Turismo y movilidad
-  rnt: { id: 'thwd-ivmp', entidad: 'Ministerio de Comercio, Industria y Turismo (MinCIT)', nombre: 'Registro Nacional de Turismo – RNT', tema: 'Turismo' },
-  supertransporte: { id: 'eh75-8ah6', entidad: 'Superintendencia de Transporte', nombre: 'Operación de pasajeros y despacho de vehículos en terminales (transporte por carretera)', tema: 'Turismo' },
+  rnt: { id: 'thwd-ivmp', entidad: 'Ministerio de Comercio, Industria y Turismo (MinCIT)', nombre: 'Registro Nacional de Turismo – RNT', tema: 'Turismo y movilidad' },
+  supertransporte: { id: 'eh75-8ah6', entidad: 'Superintendencia de Transporte', nombre: 'Operación de pasajeros y despacho de vehículos en terminales (transporte por carretera)', tema: 'Turismo y movilidad' },
+  ani_peajes: { id: '8yi9-t44c', entidad: 'Agencia Nacional de Infraestructura (ANI)', nombre: 'Tráfico vehicular mensual por categoría tarifaria en estaciones de peaje (Peaje Caiquero)', tema: 'Turismo y movilidad' },
+  runt_electricos: { id: 'ntxy-q9ix', entidad: 'Ministerio de Transporte – RUNT', nombre: 'Vehículos eléctricos e híbridos matriculados en el RUNT', tema: 'Turismo y movilidad' },
 
   // Economía y empresas
   rues: { id: 'c82u-588k', entidad: 'Confecámaras – RUES (Cámara de Comercio de Facatativá)', nombre: 'Personas naturales, personas jurídicas y entidades sin ánimo de lucro', tema: 'Economía' },
@@ -20,40 +30,76 @@ export const SOURCES = {
   supersociedades: { id: '6cat-2gcs', entidad: 'Superintendencia de Sociedades', nombre: '10.000 empresas más grandes del país', tema: 'Economía' },
   supersolidaria: { id: 'kg2d-yfyg', entidad: 'Superintendencia de la Economía Solidaria', nombre: 'Listado de entidades del sector solidario', tema: 'Economía' },
 
-  // Servicios públicos
+  // Servicios públicos y conectividad
   rups: { id: '4qkq-csdn', entidad: SSPD, nombre: 'Registro Único de Prestadores de Servicios Públicos – RUPS', tema: 'Servicios públicos' },
   sspd_residuos: { id: 'd7pt-p5fi', entidad: SSPD, nombre: 'Residuos generados en el área de prestación del servicio de aseo', tema: 'Servicios públicos' },
   sspd_pqr_energia: { id: 'myu9-6wb7', entidad: SSPD, nombre: 'Reclamaciones y quejas – energía', tema: 'Servicios públicos' },
-  ins_irca: { id: 'nxt2-39c3', entidad: 'Instituto Nacional de Salud (INS) – SIVICAP', nombre: 'Calidad del agua para consumo humano (IRCA)', tema: 'Servicios públicos' },
-  mintic_internet_hist: { id: 'n48w-gutb', entidad: 'Ministerio de Tecnologías de la Información y las Comunicaciones (MinTIC)', nombre: 'Internet fijo: accesos por tecnología y segmento (histórico)', tema: 'Servicios públicos' },
-  mintic_internet: { id: 'hwrp-3su3', entidad: 'Ministerio de Tecnologías de la Información y las Comunicaciones (MinTIC)', nombre: 'Accesos fijos a internet por proveedor, municipio, tecnología y velocidad', tema: 'Servicios públicos' },
+  ins_irca: { id: 'nxt2-39c3', entidad: `${INS} – SIVICAP`, nombre: 'Calidad del agua para consumo humano (IRCA)', tema: 'Servicios públicos' },
+  minvivienda_agua: { id: 'tcwu-r53g', entidad: 'Ministerio de Vivienda, Ciudad y Territorio', nombre: 'Proyectos de inversión en acceso a agua potable y saneamiento básico', tema: 'Servicios públicos' },
+  mintic_internet_hist: { id: 'n48w-gutb', entidad: MINTIC, nombre: 'Internet fijo: accesos por tecnología y segmento (histórico)', tema: 'Servicios públicos' },
+  mintic_internet: { id: 'hwrp-3su3', entidad: MINTIC, nombre: 'Accesos fijos a internet por proveedor, municipio, tecnología y velocidad', tema: 'Servicios públicos' },
+  mintic_cobertura_movil: { id: '9mey-c8s8', entidad: MINTIC, nombre: 'Cobertura móvil por tecnología, departamento, municipio y centro poblado', tema: 'Servicios públicos' },
 
-  // Educación y cultura
+  // Educación, cultura y formación laboral
   men: { id: 'nudc-7mev', entidad: 'Ministerio de Educación Nacional (MEN)', nombre: 'Estadísticas en educación preescolar, básica y media por municipio', tema: 'Educación' },
+  men_establecimientos: { id: 'cfw5-qzt5', entidad: 'Ministerio de Educación Nacional (MEN)', nombre: 'Directorio de establecimientos educativos de preescolar, básica y media', tema: 'Educación' },
   icfes: { id: 'kgxf-xxbe', entidad: 'Instituto Colombiano para la Evaluación de la Educación (ICFES)', nombre: 'Resultados únicos Saber 11', tema: 'Educación' },
+  mintic_cpe: { id: 'pyqj-s96k', entidad: `${MINTIC} – Computadores para Educar`, nombre: 'Gestión integral de beneficio educativo: equipos entregados y docentes formados', tema: 'Educación' },
+  sena_certificados: { id: '28vu-5tx7', entidad: 'Servicio Nacional de Aprendizaje (SENA)', nombre: 'Certificación de Formación Profesional Integral por municipio', tema: 'Educación' },
   mincultura: { id: 'bq7b-e3sb', entidad: 'Ministerio de las Culturas, las Artes y los Saberes', nombre: 'Beneficiarios del Ministerio de las Culturas', tema: 'Educación' },
 
-  // Salud
+  // Salud y vigilancia epidemiológica
   reps: { id: 'c36g-9fc2', entidad: 'Ministerio de Salud y Protección Social', nombre: 'Registro Especial de Prestadores y Sedes de Servicios de Salud – REPS', tema: 'Salud' },
   afiliados: { id: 'hn4i-593p', entidad: 'Ministerio de Salud y Protección Social', nombre: 'Número de afiliados por departamento, municipio y régimen', tema: 'Salud' },
+  adres_contributivo: { id: 'tq4m-hmg2', entidad: ADRES, nombre: 'Base de Datos Única de Afiliados (BDUA) – Régimen Contributivo por EPS y grupo etario', tema: 'Salud' },
+  adres_subsidiado: { id: 'd7a5-cnra', entidad: ADRES, nombre: 'Base de Datos Única de Afiliados (BDUA) – Régimen Subsidiado por EPS y grupo etario', tema: 'Salud' },
+  ins_sivigila: { id: 'fhc4-jjti', entidad: `${INS} – SIVIGILA`, nombre: 'Notificación de eventos de interés en salud pública por municipio de ocurrencia', tema: 'Salud' },
+  ins_covid: { id: 'gt2j-8ykr', entidad: INS, nombre: 'Casos positivos de COVID-19 en Colombia (histórico municipal)', tema: 'Salud' },
 
-  // Agro
+  // Población, Sisbén y protección social
+  sisben: { id: 'hq2v-5umk', entidad: 'Departamento Nacional de Planeación (DNP) – Sisbén IV', nombre: 'Personas registradas en la base certificada del Sisbén IV por grupo y zona', tema: 'Protección social' },
+  dps_inversion: { id: 'deuu-ikix', entidad: DPS, nombre: 'Ficha de inversión y cobertura municipal en programas de superación de la pobreza', tema: 'Protección social' },
+  dps_familias: { id: 'xfif-myr2', entidad: DPS, nombre: 'Beneficiarios del programa Más Familias en Acción / Renta Ciudadana', tema: 'Protección social' },
+  dps_colombia_mayor: { id: '7tfe-kjaw', entidad: DPS, nombre: 'Cupos y recursos asignados del programa Colombia Mayor por municipio', tema: 'Protección social' },
+  icbf_beneficiarios: { id: '5akr-u7t8', entidad: ICBF, nombre: 'Beneficiarios de programas de Primera Infancia por modalidad y municipio', tema: 'Protección social' },
+  icbf_uds: { id: 'i8ww-5mcf', entidad: ICBF, nombre: 'Directorio de Unidades de Servicio (UDS) de Primera Infancia', tema: 'Protección social' },
+  colpensiones_afiliados: { id: 'xfsi-rqje', entidad: 'Colpensiones', nombre: 'Afiliados al Régimen de Prima Media por municipio y género', tema: 'Protección social' },
+  colpensiones_pensionados: { id: 'hdnf-a76p', entidad: 'Colpensiones', nombre: 'Pensionados del Régimen de Prima Media por municipio', tema: 'Protección social' },
+  idaco_jac: { id: 'tjdz-uu2b', entidad: 'Instituto Departamental de Acción Comunal de Cundinamarca (IDACO)', nombre: 'Directorio de Juntas de Acción Comunal y Juntas de Vivienda Comunitaria', tema: 'Protección social' },
+
+  // Agro y desarrollo rural
   eva_hist: { id: '2pnw-mmge', entidad: 'Ministerio de Agricultura y Desarrollo Rural', nombre: 'Evaluaciones Agropecuarias Municipales – EVA 2007–2018', tema: 'Agro' },
   eva: { id: 'uejq-wxrr', entidad: 'Unidad de Planificación Rural Agropecuaria (UPRA)', nombre: 'Evaluaciones Agropecuarias Municipales – EVA 2019 en adelante (base agrícola)', tema: 'Agro' },
   fng: { id: 'cea5-4ctf', entidad: 'Fondo Nacional del Ganado (FNG) – Fedegán / ICA', nombre: 'Inventario bovino y bufalino por ciclo de vacunación', tema: 'Agro' },
   finagro: { id: 'jjvv-55ck', entidad: 'Fondo para el Financiamiento del Sector Agropecuario (FINAGRO)', nombre: 'Desembolsos de crédito de fomento agropecuario', tema: 'Agro' },
+  upra_informalidad: { id: 'nr49-4vwb', entidad: 'Unidad de Planificación Rural Agropecuaria (UPRA)', nombre: 'Índice de informalidad en la tenencia de la tierra rural por municipio', tema: 'Agro' },
 
   // Contratación y finanzas públicas
   secop: { id: 'rpmr-utcd', entidad: 'Agencia Nacional de Contratación Pública – Colombia Compra Eficiente', nombre: 'SECOP Integrado (SECOP I y II)', tema: 'Contratación' },
   sgr: { id: 'g4qj-2p2e', entidad: 'Ministerio de Hacienda y Crédito Público', nombre: 'Ejecución presupuestal del Sistema General de Regalías (SGR)', tema: 'Contratación' },
   mdm: { id: 'nkjx-rsq7', entidad: 'Departamento Nacional de Planeación (DNP)', nombre: 'Medición del Desempeño Municipal (MDM)', tema: 'Contratación' },
 
-  // Víctimas
+  // Víctimas y restitución de tierras
   uariv_hechos: { id: '9qih-4vkc', entidad: UARIV, nombre: 'Cifras de víctimas por hechos – nivel municipal', tema: 'Víctimas' },
   uariv_desplazamiento: { id: 'krnc-8azs', entidad: UARIV, nombre: 'Desplazamiento anualizado: ocurrencia y llegada – nivel municipal', tema: 'Víctimas' },
+  urt_restitucion: { id: '33hn-pgph', entidad: 'Unidad de Restitución de Tierras (URT)', nombre: 'Solicitudes de inscripción en el Registro de Tierras Despojadas y Abandonadas Forzosamente', tema: 'Víctimas' },
 
-  // Territorio, riesgo y ambiente
-  catastro: { id: 'h9h6-gkdg', entidad: 'Agencia Catastral de Cundinamarca', nombre: 'Base catastral municipio de Villeta', tema: 'Territorio' },
+  // Seguridad, justicia forense y convivencia
+  medlegal_homicidios: { id: 'vtub-3de2', entidad: MEDLEGAL, nombre: 'Presuntos homicidios registrados por Medicina Legal en Colombia', tema: 'Seguridad' },
+  medlegal_vif: { id: 'ers2-kerr', entidad: MEDLEGAL, nombre: 'Violencia intrafamiliar valorada por Medicina Legal según contexto', tema: 'Seguridad' },
+  medlegal_suicidios: { id: 'f75u-mirk', entidad: MEDLEGAL, nombre: 'Presuntos suicidios registrados por Medicina Legal', tema: 'Seguridad' },
+  medlegal_desaparecidos: { id: '8hqm-7fdt', entidad: MEDLEGAL, nombre: 'Personas reportadas como desaparecidas en el SIRDEC', tema: 'Seguridad' },
+  medlegal_fatales: { id: '2kpj-cktv', entidad: MEDLEGAL, nombre: 'Lesiones fatales de causa externa (cifras preliminares)', tema: 'Seguridad' },
+  mintransporte_accidentes: { id: '6jmc-vaxk', entidad: 'Ministerio de Transporte', nombre: 'Vehículos involucrados en accidentes de tránsito registrados en el país', tema: 'Seguridad' },
+  policia_comparendos: { id: '7j4w-6p73', entidad: POLICIA, nombre: 'Medidas correctivas del Código Nacional de Seguridad y Convivencia Ciudadana (Ley 1801)', tema: 'Seguridad' },
+  policia_convivencia: { id: 'xac8-4he4', entidad: POLICIA, nombre: 'Comportamientos contrarios a la convivencia – RNMC', tema: 'Seguridad' },
+
+  // Territorio, clima, riesgo y ambiente
+  catastro: { id: 'h9h6-gkdg', entidad: 'Agencia Catastral de Cundinamarca', nombre: 'Base catastral multipropósito del municipio de Villeta', tema: 'Territorio' },
+  car_quejas: { id: '5ddb-j9e9', entidad: 'Corporación Autónoma Regional de Cundinamarca (CAR)', nombre: 'Histórico de quejas ambientales por municipio y recurso afectado', tema: 'Territorio' },
+  ideam_estaciones: { id: 'hp9r-jxuu', entidad: IDEAM, nombre: 'Catálogo nacional de estaciones hidrometeorológicas', tema: 'Territorio' },
+  ideam_precipitacion: { id: 's54a-sgyg', entidad: IDEAM, nombre: 'Datos hidrometeorológicos crudos – precipitación', tema: 'Territorio' },
+  ideam_temperatura: { id: 'sbwg-7ju4', entidad: IDEAM, nombre: 'Datos hidrometeorológicos crudos – temperatura ambiente del aire', tema: 'Territorio' },
   ungrd_2019: { id: '4fd8-ptcr', entidad: UNGRD, nombre: 'Emergencias UNGRD 2019', tema: 'Territorio' },
   ungrd_2020: { id: '4t8v-ywmw', entidad: UNGRD, nombre: 'Emergencias 2020', tema: 'Territorio' },
   ungrd_2023: { id: 'rgre-6ak4', entidad: UNGRD, nombre: 'Emergencias UNGRD 2023–2024', tema: 'Territorio' },
@@ -86,11 +132,16 @@ for (const d of DELITOS) {
 // Fuentes oficiales relevantes que no exponen una API abierta (consulta manual / descarga).
 export const FUENTES_COMPLEMENTARIAS = [
   { entidad: 'DANE', nombre: 'Proyecciones de población municipal (CNPV 2018)', url: 'https://www.dane.gov.co/index.php/estadisticas-por-tema/demografia-y-poblacion/proyecciones-de-poblacion' },
-  { entidad: 'DNP', nombre: 'TerriData – ficha territorial de Villeta', url: 'https://terridata.dnp.gov.co/index-app.html#/perfiles/25875' },
+  { entidad: 'DNP', nombre: 'TerriData – ficha territorial de Villeta (25875)', url: 'https://terridata.dnp.gov.co/index-app.html#/perfiles/25875' },
+  { entidad: 'DNP', nombre: 'Portal territorial Sisbén IV – consulta ciudadana y estadísticas', url: 'https://www.sisben.gov.co/' },
   { entidad: 'Superservicios', nombre: 'SUI – Sistema Único de Información de servicios públicos (suscriptores, tarifas, consumo)', url: 'https://sui.superservicios.gov.co/' },
   { entidad: 'MinCIT', nombre: 'CITUR – Centro de Información Turística de Colombia (ocupación hotelera, visitantes)', url: 'https://www.citur.gov.co/' },
-  { entidad: 'Confecámaras', nombre: 'RUES – consulta de matrículas mercantiles', url: 'https://www.rues.org.co/' },
-  { entidad: 'Cámara de Comercio de Facatativá', nombre: 'Estudios económicos y estadísticas de la jurisdicción', url: 'https://www.ccfacatativa.org.co/' },
+  { entidad: 'Confecámaras', nombre: 'RUES – Registro Único Empresarial y Social (consulta de matrículas mercantiles)', url: 'https://www.rues.org.co/' },
+  { entidad: 'Cámara de Comercio de Facatativá', nombre: 'Estudios económicos y estadísticas del Noroccidente cundinamarqués', url: 'https://www.ccfacatativa.org.co/' },
   { entidad: 'Contraloría General de la República', nombre: 'CUIPO / CHIP – ejecución presupuestal territorial', url: 'https://www.chip.gov.co/' },
-  { entidad: 'Colombia Compra Eficiente', nombre: 'SECOP II – búsqueda de procesos', url: 'https://community.secop.gov.co/' },
+  { entidad: 'Colombia Compra Eficiente', nombre: 'SECOP II – búsqueda de procesos contractuales en línea', url: 'https://community.secop.gov.co/' },
+  { entidad: 'IGAC', nombre: 'Colombia en Mapas – cartografía oficial, agrología y ortofotos de Villeta', url: 'https://www.colombiaenmapas.gov.co/' },
+  { entidad: 'CAR Cundinamarca', nombre: 'Geoambiental CAR – cuencas hidrográficas (Río Negro), POMCA y licencias ambientales', url: 'https://geoambiental.car.gov.co/' },
+  { entidad: 'Gobernación de Cundinamarca', nombre: 'Mapas y Estadísticas de Cundinamarca – tableros provinciales del Gualivá', url: 'https://mapasyestadisticas-cundinamarca-map.opendata.arcgis.com/' },
+  { entidad: 'Medicina Legal', nombre: 'Forensis – Datos para la vida (informes anuales de lesiones de causa externa)', url: 'https://www.medicinalegal.gov.co/cifras-estadisticas/forensis' },
 ];

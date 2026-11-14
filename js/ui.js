@@ -116,13 +116,25 @@ function fillKpi(tile, k) {
   }
 }
 
+function copyText(btn, text, doneLabel = '✓ Copiado') {
+  const prev = btn.textContent;
+  navigator.clipboard?.writeText(text).then(() => {
+    btn.textContent = doneLabel;
+    setTimeout(() => { btn.textContent = prev; }, 1800);
+  }).catch(() => {});
+}
+
 // ---------- tarjeta ----------
-export function renderBlock(block, grid, filters) {
+export function renderBlock(block, grid, filters, sectionId = '') {
   if (block.type === 'heading') {
+    const s = slug(block.title);
     const h = el('div', 'block-heading');
-    h.id = `h-${slug(block.title)}`;
-    h.dataset.sub = slug(block.title);
-    h.innerHTML = `<h2>${escapeHtml(block.title)}</h2>${block.text ? `<p>${block.text}</p>` : ''}`;
+    h.id = `h-${s}`;
+    h.dataset.sub = s;
+    const subHref = `${sectionId && sectionId !== 'inicio' ? `${sectionId}/` : ''}${s}/`;
+    h.innerHTML = `<div class="heading-row"><h2><a class="heading-anchor" href="${subHref}">${escapeHtml(block.title)}</a></h2><button type="button" class="btn-ghost btn-sm heading-copy" title="Copiar enlace directo a esta subsección">Copiar enlace</button></div>${block.text ? `<p>${block.text}</p>` : ''}`;
+    const cbtn = h.querySelector('.heading-copy');
+    cbtn.onclick = () => copyText(cbtn, new URL(subHref, document.baseURI).href, '✓ Enlace copiado');
     grid.append(h);
     return;
   }
@@ -252,7 +264,7 @@ export function renderBlock(block, grid, filters) {
 
   async function paintFooter(res, table) {
     footer.innerHTML = '';
-    const keys = [...new Set([...(block.sources || []), ...used.map(u => u.key)])];
+    const keys = [...new Set([...(block.sources || []), ...(res?.sources || []), ...used.map(u => u.key)])];
     const list = el('ul', 'sources');
     list.append(...await Promise.all(keys.map(sourceLine)));
     // Citas adicionales (documentos sin API): fijas en el bloque o devueltas por la consulta.
@@ -282,6 +294,20 @@ export function renderBlock(block, grid, filters) {
       cbtn.onclick = () => downloadCsv(table, `villeta-${block.title.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-')}`);
       actions.append(cbtn);
     }
+    if (keys.length || extra.length) {
+      const citeBtn = el('button', 'btn-ghost', 'Copiar cita');
+      citeBtn.type = 'button';
+      citeBtn.title = 'Copiar referencia bibliográfica / periodística al portapapeles';
+      citeBtn.onclick = () => {
+        const srcTxt = keys.map(k => {
+          const s = SOURCES[k];
+          return s ? `${s.entidad}, "${s.nombre}" (datos.gov.co/${s.id})` : k;
+        }).concat(extra.map(t => t.replace(/<[^>]+>/g, ''))).join('; ');
+        const cite = `${block.title} — Villeta, Cundinamarca (código DANE 25875). Fuente: ${srcTxt}. Consultado en Datavilleta (${location.href}) el ${fecha(new Date())}.`;
+        copyText(citeBtn, cite, '✓ Cita copiada');
+      };
+      actions.append(citeBtn);
+    }
     if (used.length) {
       const det = el('details', 'api-links');
       det.innerHTML = `<summary>Consulta API (${used.length})</summary>`;
@@ -306,7 +332,9 @@ export function renderSection(section, root, { filters, onFilterChange }) {
   root.innerHTML = '';
   root.classList.toggle('has-filters', !!section.filters?.length);
   const head = el('header', 'section-head');
-  head.innerHTML = `<p class="eyebrow">${escapeHtml(section.eyebrow || 'Villeta, Cundinamarca')}</p><h1>${escapeHtml(section.title)}</h1>${section.intro ? `<p class="lead">${section.intro}</p>` : ''}`;
+  head.innerHTML = `<div class="section-head-top"><p class="eyebrow">${escapeHtml(section.eyebrow || 'Villeta, Cundinamarca · Código DANE 25875')}</p><div class="head-tools"><button type="button" class="btn-ghost btn-sm" id="btn-share-sec" title="Copiar enlace directo a esta vista">Copiar enlace</button><button type="button" class="btn-ghost btn-sm" id="btn-print-sec" title="Imprimir o guardar esta sección como PDF">Imprimir / PDF</button></div></div><h1>${escapeHtml(section.title)}</h1>${section.intro ? `<p class="lead">${section.intro}</p>` : ''}`;
+  head.querySelector('#btn-share-sec').onclick = e => copyText(e.currentTarget, location.href, '✓ Enlace copiado');
+  head.querySelector('#btn-print-sec').onclick = () => window.print();
   root.append(head);
 
   if (section.filters?.length) {
@@ -336,5 +364,5 @@ export function renderSection(section, root, { filters, onFilterChange }) {
 
   const grid = el('div', 'grid');
   root.append(grid);
-  for (const block of section.blocks) renderBlock(block, grid, filters);
+  for (const block of section.blocks) renderBlock(block, grid, filters, section.id);
 }
